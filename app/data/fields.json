@@ -1,0 +1,119 @@
+{
+  "required": [
+    {
+      "id": "name",
+      "label": "Nombre",
+      "type": "text",
+      "placeholder": "John Doe",
+      "icon": "i-lucide-user",
+      "required": true
+    },
+    {
+      "id": "position",
+      "label": "Puesto",
+      "type": "text",
+      "placeholder": "Product Designer",
+      "icon": "i-lucide-briefcase",
+      "required": true
+    },
+    {
+      "id": "mail",
+      "label": "Email",
+      "type": "email",
+      "placeholder": "john@example.com",
+      "icon": "i-lucide-mail",
+      "required": true
+    }
+  ],
+  "optional": [
+    {
+      "id": "output",
+      "label": "Nombre de salida",
+      "type": "text",
+      "placeholder": "nombre-archivo",
+      "icon": "i-lucide-file-output",
+      "required": false
+    },
+    {
+      "id": "phone",
+      "label": "Teléfono",
+      "type": "tel",
+      "placeholder": "958 241 561",
+      "icon": "i-lucide-phone",
+      "required": false,
+      "defaultFromProfile": "phone"
+    },
+    {
+      "id": "phone_country_code",
+      "label": "Prefijo país",
+      "type": "text",
+      "placeholder": "+34",
+      "icon": "i-lucide-globe",
+      "required": false,
+      "defaultFromProfile": "phone_country_code"
+    },
+    {
+      "id": "internal_phone",
+      "label": "Teléfono interno",
+      "type": "tel",
+      "placeholder": "41561",
+      "icon": "i-lucide-phone-incoming",
+      "required": false,
+      "defaultFromProfile": "internal_phone"
+    },
+    {
+      "id": "opt_mail",
+      "label": "Email secundario",
+      "type": "email",
+      "placeholder": "info@example.com",
+      "icon": "i-lucide-mail-plus",
+      "required": false,
+      "defaultFromProfile": "opt_mail"
+    },
+    {
+      "id": "organization_extra",
+      "label": "Organización extra",
+      "type": "text",
+      "placeholder": "Universidad de Granada",
+      "icon": "i-lucide-building-2",
+      "required": false,
+      "defaultFromProfile": "organization_extra"
+    },
+    {
+      "id": "main_font",
+      "label": "Fuente principal",
+      "type": "text",
+      "placeholder": "Montserrat",
+      "icon": "i-lucide-type",
+      "required": false,
+      "defaultFromProfile": "main_font"
+    },
+    {
+      "id": "name_font",
+      "label": "Fuente del nombre",
+      "type": "text",
+      "placeholder": "Open Sans",
+      "icon": "i-lucide-a-large-small",
+      "required": false,
+      "defaultFromProfile": "name_font"
+    },
+    {
+      "id": "max_width",
+      "label": "Ancho máximo",
+      "type": "text",
+      "placeholder": "315",
+      "icon": "i-lucide-move-horizontal",
+      "required": false,
+      "defaultFromProfile": "max_width"
+    },
+    {
+      "id": "name_image",
+      "label": "Imagen/Logo personalizado",
+      "type": "url",
+      "placeholder": "https://example.com/logo.png",
+      "icon": "i-lucide-image",
+      "required": false,
+      "defaultFromProfile": "name_image"
+    }
+  ]
+}
