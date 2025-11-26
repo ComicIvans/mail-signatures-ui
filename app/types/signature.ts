@@ -45,13 +45,6 @@ export const OrganizationConfigSchema = z.object({
   footer_text: z.string().optional()
 })
 
-// Format schema
-export const FormatSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional()
-})
-
 // Signature field definition schema
 export const SignatureFieldSchema = z.object({
   id: z.string(),
@@ -87,7 +80,6 @@ export const UserSignatureDataSchema = z.object({
 export type SocialLink = z.infer<typeof SocialLinkSchema>
 export type Sponsor = z.infer<typeof SponsorSchema>
 export type OrganizationConfig = z.infer<typeof OrganizationConfigSchema>
-export type Format = z.infer<typeof FormatSchema>
 export type SignatureField = z.infer<typeof SignatureFieldSchema>
 export type UserSignatureData = z.infer<typeof UserSignatureDataSchema>
 
@@ -99,7 +91,6 @@ export type UserSignatureData = z.infer<typeof UserSignatureDataSchema>
 export interface SignatureContext {
   user: UserSignatureData
   profile: OrganizationConfig
-  format: Format
 }
 
 // Validation result
