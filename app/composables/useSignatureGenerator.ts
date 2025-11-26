@@ -287,12 +287,8 @@ ${generateLinksHtml(profile)}
 export function useSignatureGenerator() {
   const toast = useToast()
 
-  function generateHtml(
-    user: UserSignatureData,
-    profile: OrganizationConfig,
-    format: string
-  ): string {
-    switch (format) {
+  function generateHtml(user: UserSignatureData, profile: OrganizationConfig): string {
+    switch (profile.template) {
       case 'wide-logo':
         return generateWideLogoHtml(user, profile)
       case 'original':

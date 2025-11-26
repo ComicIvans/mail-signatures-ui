@@ -4,12 +4,11 @@ import type { OrganizationConfig, UserSignatureData } from '~/types/signature'
 const props = defineProps<{
   user: UserSignatureData
   profile: OrganizationConfig
-  format: string
 }>()
 
-// Dynamic component based on format
+// Dynamic component based on profile template
 const templateComponent = computed(() => {
-  switch (props.format) {
+  switch (props.profile.template) {
     case 'wide-logo':
       return resolveComponent('SignatureTemplateWideLogo')
     case 'original':

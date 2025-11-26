@@ -2,30 +2,26 @@
 import type { AcceptableValue, SelectItem, TabsItem } from '@nuxt/ui'
 import { z } from 'zod/v4'
 import {
-  type Format,
   type OrganizationConfig,
   type SignatureField,
   type UserSignatureData,
   OrganizationConfigSchema,
-  FormatSchema,
   SignatureFieldSchema,
   UserSignatureDataSchema
 } from '~/types/signature'
 import { useSignatureGenerator } from '~/composables/useSignatureGenerator'
 
 // Import JSON data
-import formatsData from '~/data/formats.json'
 import profilesData from '~/data/profiles.json'
 import fieldsData from '~/data/fields.json'
 
 useSeoMeta({
   title: 'Generador de firmas',
   description:
-    'Genera tu firma de correo electrónico personalizada. Elige el formato, organización y completa tus datos personales.'
+    'Genera tu firma de correo electrónico personalizada. Elige el perfil de organización y completa tus datos personales.'
 })
 
 // Validate and parse JSON data
-const formats = z.array(FormatSchema).parse(formatsData)
 const profiles = z.array(OrganizationConfigSchema).parse(profilesData)
 const requiredFields = z.array(SignatureFieldSchema).parse(fieldsData.required)
 const optionalFields = z.array(SignatureFieldSchema).parse(fieldsData.optional)
@@ -37,22 +33,19 @@ const { generateHtml, copyToClipboard, downloadHtml } = useSignatureGenerator()
 // State
 // ============================================
 
-// Format selection
-const formatOptions = computed<SelectItem[]>(() =>
-  formats.map((f) => ({
-    label: f.label,
-    value: f.id
-  }))
-)
-const selectedFormatId = ref(formats[0]?.id || 'original')
-const selectedFormat = computed<Format | undefined>(() =>
-  formats.find((f) => f.id === selectedFormatId.value)
-)
-
 // Profile selection
-const profileOptions = computed<SelectItem[]>(() =>
+interface ProfileOption {
+  id: string
+  organization: string
+  label: string
+  value: string
+}
+
+const profileOptions = computed<ProfileOption[]>(() =>
   profiles.map((p) => ({
-    label: p.id,
+    id: p.id,
+    organization: p.organization,
+    label: `${p.id} - ${p.organization}`,
     value: p.id
   }))
 )
@@ -60,6 +53,9 @@ const selectedProfileId = ref(profiles[0]?.id || '')
 const selectedProfile = computed<OrganizationConfig | undefined>(() =>
   profiles.find((p) => p.id === selectedProfileId.value)
 )
+
+// Modal for profile configuration
+const isProfileModalOpen = ref(false)
 
 // Mode tabs (multiple mode disabled for now)
 const modeTabs: TabsItem[] = [
@@ -174,6 +170,19 @@ function validateUserData(data: UserSignatureData): boolean {
     errors[path] = issue.message
   }
   validationErrors.value = errors
+
+  // Scroll to first field with error
+  const firstErrorField = result.error.issues[0]?.path[0]
+  if (firstErrorField) {
+    nextTick(() => {
+      const element = document.getElementById(`field-${String(firstErrorField)}`)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Focus the input inside the field
+      const input = element?.querySelector('input')
+      input?.focus()
+    })
+  }
+
   return false
 }
 
@@ -185,7 +194,7 @@ function handleCopyHtml() {
   if (!selectedProfile.value) return
   if (!validateUserData(userData)) return
 
-  const html = generateHtml(userData, selectedProfile.value, selectedFormatId.value)
+  const html = generateHtml(userData, selectedProfile.value)
   copyToClipboard(html)
 }
 
@@ -193,7 +202,7 @@ function handleDownload() {
   if (!selectedProfile.value) return
   if (!validateUserData(userData)) return
 
-  const html = generateHtml(userData, selectedProfile.value, selectedFormatId.value)
+  const html = generateHtml(userData, selectedProfile.value)
   downloadHtml(html, selectedProfile.value.id, userData.name, userData.output)
 }
 
@@ -215,31 +224,37 @@ watch(selectedProfileId, () => {
 <template>
   <UContainer class="py-8">
     <!-- Configuration Row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Format Card -->
-      <UCard>
-        <template #header>
-          <h3 class="font-semibold">Formato</h3>
-        </template>
-        <UFormField label="Estilo del diseño">
-          <USelect v-model="selectedFormatId" :items="formatOptions" class="w-full" />
-        </UFormField>
-        <p v-if="selectedFormat?.description" class="text-sm text-muted mt-2">
-          {{ selectedFormat.description }}
-        </p>
-      </UCard>
-
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Profile Card -->
       <UCard>
         <template #header>
-          <h3 class="font-semibold">Perfil</h3>
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Perfil</h3>
+            <UButton
+              v-if="selectedProfile"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-settings"
+              @click="isProfileModalOpen = true"
+            />
+          </div>
         </template>
-        <UFormField label="Organización">
-          <USelect v-model="selectedProfileId" :items="profileOptions" class="w-full" />
-        </UFormField>
-        <p v-if="selectedProfile" class="text-sm text-muted mt-2">
-          {{ selectedProfile.organization }}
-        </p>
+        <USelectMenu
+          v-model="selectedProfileId"
+          :items="profileOptions"
+          class="w-full"
+          value-key="value"
+        >
+          <template #item="{ item }">
+            <div class="py-1">
+              <span class="font-semibold">{{ (item as ProfileOption).id }}</span>
+              <p class="text-sm text-muted whitespace-normal">
+                {{ (item as ProfileOption).organization }}
+              </p>
+            </div>
+          </template>
+        </USelectMenu>
       </UCard>
 
       <!-- Mode Card -->
@@ -248,27 +263,114 @@ watch(selectedProfileId, () => {
           <h3 class="font-semibold">Modo</h3>
         </template>
         <UTabs v-model="selectedMode" :items="modeTabs" :content="false" class="w-full" />
-        <p
-          v-if="modeTabs.find((t) => t.value === selectedMode)?.description"
-          class="text-sm text-muted mt-2"
-        >
-          {{ modeTabs.find((t) => t.value === selectedMode)?.description }}
-        </p>
       </UCard>
     </div>
+
+    <!-- Profile Configuration Modal -->
+    <UModal v-model:open="isProfileModalOpen">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">Configuración del perfil</h3>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                icon="i-lucide-x"
+                @click="isProfileModalOpen = false"
+              />
+            </div>
+          </template>
+          <div v-if="selectedProfile" class="space-y-3 text-sm max-h-96 overflow-y-auto">
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">ID:</span>
+              <span>{{ selectedProfile.id }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Plantilla:</span>
+              <span>{{ selectedProfile.template }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Organización:</span>
+              <span>{{ selectedProfile.organization }}</span>
+            </div>
+            <div v-if="selectedProfile.organization_extra" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Org. extra:</span>
+              <span>{{ selectedProfile.organization_extra }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Color:</span>
+              <span class="flex items-center gap-2">
+                <span
+                  class="w-4 h-4 rounded-full border"
+                  :style="{ backgroundColor: selectedProfile.color }"
+                />
+                {{ selectedProfile.color }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Fuente principal:</span>
+              <span>{{ selectedProfile.main_font }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Fuente nombre:</span>
+              <span>{{ selectedProfile.name_font }}</span>
+            </div>
+            <div v-if="selectedProfile.phone" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Teléfono:</span>
+              <span>{{ selectedProfile.phone_country_code }} {{ selectedProfile.phone }}</span>
+            </div>
+            <div v-if="selectedProfile.internal_phone" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Extensión:</span>
+              <span>{{ selectedProfile.internal_phone }}</span>
+            </div>
+            <div v-if="selectedProfile.opt_mail" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Email opcional:</span>
+              <span>{{ selectedProfile.opt_mail }}</span>
+            </div>
+            <div v-if="selectedProfile.max_width" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Ancho máximo:</span>
+              <span>{{ selectedProfile.max_width }}px</span>
+            </div>
+            <div v-if="selectedProfile.links?.length" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Enlaces:</span>
+              <span>{{ selectedProfile.links.length }} redes sociales</span>
+            </div>
+            <div v-if="selectedProfile.sponsors?.length" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Patrocinadores:</span>
+              <span>{{ selectedProfile.sponsors.length }}</span>
+            </div>
+            <div v-if="selectedProfile.supporters?.length" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Colaboradores:</span>
+              <span>{{ selectedProfile.supporters.length }}</span>
+            </div>
+            <div v-if="selectedProfile.footer_address" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Dirección:</span>
+              <span class="text-xs">{{ selectedProfile.footer_address }}</span>
+            </div>
+            <div v-if="selectedProfile.footer_text" class="grid grid-cols-2 gap-2">
+              <span class="font-medium text-muted">Pie de página:</span>
+              <span class="text-xs text-muted">Texto legal configurado</span>
+            </div>
+          </div>
+        </UCard>
+      </template>
+    </UModal>
 
     <!-- Main Content Area -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
       <!-- Form Section -->
       <UCard>
         <template #header>
-          <h3 class="font-semibold">Información personal</h3>
+          <h3 class="font-semibold">Campos de la firma</h3>
         </template>
 
         <div class="space-y-4">
           <!-- Required fields -->
           <UFormField
             v-for="field in requiredFields"
+            :id="`field-${field.id}`"
             :key="field.id"
             :label="field.label"
             :required="field.required"
@@ -287,6 +389,7 @@ watch(selectedProfileId, () => {
           <!-- Enabled optional fields -->
           <UFormField
             v-for="field in enabledOptionalFieldsList"
+            :id="`field-${field.id}`"
             :key="field.id"
             :label="field.label"
             :error="validationErrors[field.id]"
@@ -338,12 +441,7 @@ watch(selectedProfileId, () => {
           class="bg-white text-black rounded-lg p-6 min-h-48 overflow-auto"
           style="color-scheme: light"
         >
-          <SignaturePreview
-            v-if="selectedProfile"
-            :user="userData"
-            :profile="selectedProfile"
-            :format="selectedFormatId"
-          />
+          <SignaturePreview v-if="selectedProfile" :user="userData" :profile="selectedProfile" />
         </div>
 
         <!-- Action Buttons -->

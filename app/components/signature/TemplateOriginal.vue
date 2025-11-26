@@ -31,6 +31,11 @@ const phoneHref = computed(() => {
   if (!displayPhoneCountryCode.value || !displayPhone.value) return undefined
   return `tel:${displayPhoneCountryCode.value}${displayPhone.value.replace(/\s/g, '')}`
 })
+
+// Generate unique ID for images based on profile and source
+const getImageId = (prefix: string, src: string) => {
+  return `${prefix}-${props.profile.id}-${src.split('/').pop()}`
+}
 </script>
 
 <template>
@@ -56,6 +61,7 @@ const phoneHref = computed(() => {
         "
       >
         <img
+          :id="getImageId('avatar', displayNameImage)"
           alt="👤"
           :src="displayNameImage"
           style="
@@ -180,6 +186,7 @@ const phoneHref = computed(() => {
           "
         >
           <img
+            :id="getImageId('link', link.image)"
             :alt="link.alt"
             :src="link.image"
             style="
@@ -215,6 +222,7 @@ const phoneHref = computed(() => {
           style="color: inherit; text-decoration: none"
         >
           <img
+            :id="getImageId('sponsor', sponsor.image)"
             :alt="sponsor.alt"
             :src="sponsor.image"
             :style="{
@@ -250,6 +258,7 @@ const phoneHref = computed(() => {
           style="color: inherit; text-decoration: none"
         >
           <img
+            :id="getImageId('supporter', supporter.image)"
             :alt="supporter.alt"
             :src="supporter.image"
             :style="{
