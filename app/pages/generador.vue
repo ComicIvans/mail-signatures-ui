@@ -123,7 +123,7 @@ const availableOptionalFields = computed<SelectItem[]>(() =>
     }))
 )
 
-const selectedOptionalFieldToAdd = ref<string>()
+const selectedOptionalFieldToAdd = ref<string | undefined>(undefined)
 
 function addOptionalField(fieldId: AcceptableValue | undefined) {
   if (!fieldId || typeof fieldId !== 'string') return
@@ -138,7 +138,10 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
     }
   }
 
-  selectedOptionalFieldToAdd.value = undefined
+  // Clear selection after adding - use nextTick to ensure UI updates
+  nextTick(() => {
+    selectedOptionalFieldToAdd.value = undefined
+  })
 }
 
 function removeOptionalField(fieldId: string) {
@@ -405,7 +408,7 @@ watch(selectedProfileId, () => {
             >
               <template #trailing>
                 <UButton
-                  color="neutral"
+                  color="error"
                   variant="ghost"
                   size="xs"
                   icon="i-lucide-x"
@@ -432,7 +435,6 @@ watch(selectedProfileId, () => {
         <template #header>
           <div>
             <h3 class="font-semibold">Vista previa</h3>
-            <p class="text-sm text-muted">Así se verá tu firma en los correos electrónicos</p>
           </div>
         </template>
 
@@ -441,7 +443,12 @@ watch(selectedProfileId, () => {
           class="bg-white text-black rounded-lg p-6 min-h-48 overflow-auto"
           style="color-scheme: light"
         >
-          <SignaturePreview v-if="selectedProfile" :user="userData" :profile="selectedProfile" />
+          <SignaturePreview
+            v-if="selectedProfile"
+            :user="userData"
+            :profile="selectedProfile"
+            :enabled-optional-fields="enabledOptionalFields"
+          />
         </div>
 
         <!-- Action Buttons -->

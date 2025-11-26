@@ -4,7 +4,7 @@
       "id": "name",
       "label": "Nombre",
       "type": "text",
-      "placeholder": "John Doe",
+      "placeholder": "José Francisco",
       "icon": "i-lucide-user",
       "required": true
     },
@@ -12,7 +12,7 @@
       "id": "position",
       "label": "Puesto",
       "type": "text",
-      "placeholder": "Product Designer",
+      "placeholder": "Presidente",
       "icon": "i-lucide-briefcase",
       "required": true
     },
@@ -20,7 +20,7 @@
       "id": "mail",
       "label": "Email",
       "type": "email",
-      "placeholder": "john@example.com",
+      "placeholder": "jose.francisco@ejemplo.es",
       "icon": "i-lucide-mail",
       "required": true
     }
@@ -38,7 +38,7 @@
       "id": "phone",
       "label": "Teléfono",
       "type": "tel",
-      "placeholder": "958 241 561",
+      "placeholder": "612 345 678",
       "icon": "i-lucide-phone",
       "required": false,
       "defaultFromProfile": "phone"
@@ -56,7 +56,7 @@
       "id": "internal_phone",
       "label": "Teléfono interno",
       "type": "tel",
-      "placeholder": "41561",
+      "placeholder": "12345",
       "icon": "i-lucide-phone-incoming",
       "required": false,
       "defaultFromProfile": "internal_phone"
@@ -65,7 +65,7 @@
       "id": "opt_mail",
       "label": "Email secundario",
       "type": "email",
-      "placeholder": "info@example.com",
+      "placeholder": "info@ejemplo.es",
       "icon": "i-lucide-mail-plus",
       "required": false,
       "defaultFromProfile": "opt_mail"
@@ -74,7 +74,7 @@
       "id": "organization_extra",
       "label": "Organización extra",
       "type": "text",
-      "placeholder": "Universidad de Granada",
+      "placeholder": "Organización S.A.",
       "icon": "i-lucide-building-2",
       "required": false,
       "defaultFromProfile": "organization_extra"

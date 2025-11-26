@@ -8,8 +8,8 @@ useSeoMeta({
 const selectedClient = ref('thunderbird')
 
 const clientTabs = [
-  { label: 'Thunderbird', value: 'thunderbird', icon: 'i-tabler-mail' },
-  { label: 'Gmail', value: 'gmail', icon: 'i-tabler-brand-gmail' },
+  { label: 'Thunderbird', value: 'thunderbird', icon: 'i-simple-icons-thunderbird' },
+  { label: 'Gmail', value: 'gmail', icon: 'i-simple-icons-gmail' },
   { label: 'Webmail', value: 'webmail', icon: 'i-tabler-world' }
 ]
 

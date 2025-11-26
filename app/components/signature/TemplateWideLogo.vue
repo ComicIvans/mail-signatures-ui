@@ -4,27 +4,61 @@ import type { OrganizationConfig, UserSignatureData } from '~/types/signature'
 const props = defineProps<{
   user: UserSignatureData
   profile: OrganizationConfig
+  enabledOptionalFields?: Set<string>
 }>()
+
+// Helper to check if an optional field is enabled (user explicitly added it)
+const isFieldEnabled = (fieldId: string) => props.enabledOptionalFields?.has(fieldId) ?? false
+
+// Helper to get field value with smart fallback:
+// - If field is enabled by user, use user value (even if empty, to allow override)
+// - If field is not enabled, fall back to profile value
+const getOptionalValue = (fieldId: string, userValue?: string, profileValue?: string) => {
+  if (isFieldEnabled(fieldId)) {
+    return userValue || undefined
+  }
+  return userValue || profileValue
+}
 
 // Computed values that merge user data with profile defaults
 const displayName = computed(() => props.user.name || 'Nombre')
 const displayPosition = computed(() => props.user.position || 'Puesto')
 const displayMail = computed(() => props.user.mail || 'email@ejemplo.com')
-const displayPhone = computed(() => props.user.phone || props.profile.phone)
-const displayPhoneCountryCode = computed(
-  () => props.user.phone_country_code || props.profile.phone_country_code
+const displayPhone = computed(() =>
+  getOptionalValue('phone', props.user.phone, props.profile.phone)
 )
-const displayInternalPhone = computed(
-  () => props.user.internal_phone || props.profile.internal_phone
+const displayPhoneCountryCode = computed(() =>
+  getOptionalValue(
+    'phone_country_code',
+    props.user.phone_country_code,
+    props.profile.phone_country_code
+  )
 )
-const displayOptMail = computed(() => props.user.opt_mail || props.profile.opt_mail)
-const displayOrganizationExtra = computed(
-  () => props.user.organization_extra || props.profile.organization_extra
+const displayInternalPhone = computed(() =>
+  getOptionalValue('internal_phone', props.user.internal_phone, props.profile.internal_phone)
 )
-const displayNameImage = computed(() => props.user.name_image || props.profile.name_image)
-const displayMainFont = computed(() => props.user.main_font || props.profile.main_font)
-const displayNameFont = computed(() => props.user.name_font || props.profile.name_font)
-const displayMaxWidth = computed(() => props.user.max_width || props.profile.max_width)
+const displayOptMail = computed(() =>
+  getOptionalValue('opt_mail', props.user.opt_mail, props.profile.opt_mail)
+)
+const displayOrganizationExtra = computed(() =>
+  getOptionalValue(
+    'organization_extra',
+    props.user.organization_extra,
+    props.profile.organization_extra
+  )
+)
+const displayNameImage = computed(() =>
+  getOptionalValue('name_image', props.user.name_image, props.profile.name_image)
+)
+const displayMainFont = computed(() =>
+  getOptionalValue('main_font', props.user.main_font, props.profile.main_font)
+)
+const displayNameFont = computed(() =>
+  getOptionalValue('name_font', props.user.name_font, props.profile.name_font)
+)
+const displayMaxWidth = computed(
+  () => props.user.max_width || (isFieldEnabled('max_width') ? undefined : props.profile.max_width)
+)
 
 // Phone link with country code
 const phoneHref = computed(() => {
@@ -33,7 +67,8 @@ const phoneHref = computed(() => {
 })
 
 // Generate unique ID for images based on profile and source
-const getImageId = (prefix: string, src: string) => {
+const getImageId = (prefix: string, src?: string) => {
+  if (!src) return `${prefix}-${props.profile.id}-default`
   return `${prefix}-${props.profile.id}-${src.split('/').pop()}`
 }
 </script>
