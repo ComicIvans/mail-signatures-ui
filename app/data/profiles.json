@@ -2,7 +2,6 @@
   {
     "id": "DEFC",
     "template": "original",
-    "output_path": "DEFC",
     "main_font": "Montserrat",
     "name_font": "Open Sans",
     "name_image": "https://raw.githubusercontent.com/ComicIvans/mail-signatures/d4a3e97b3d5319a0f1dc568b55361c4e99eeff93/DEFC/img/DEFC.png",
@@ -53,7 +52,6 @@
   {
     "id": "DGE",
     "template": "original",
-    "output_path": "DGE",
     "main_font": "Montserrat",
     "name_font": "Open Sans",
     "name_image": "https://raw.githubusercontent.com/ComicIvans/mail-signatures/511affdfe15360dd96e6765b4fd7dba6276ac599/DGE/img/DGE.png",
@@ -99,7 +97,6 @@
   {
     "id": "AMAT",
     "template": "original",
-    "output_path": "AMAT",
     "main_font": "Montserrat",
     "name_font": "Open Sans",
     "name_image": "https://raw.githubusercontent.com/ComicIvans/mail-signatures/de0e12d8397a6f3b9fb5c56b36e5a2f587d0af10/AMAT/img/AMAT.png",
@@ -143,7 +140,6 @@
   {
     "id": "ENEM",
     "template": "wide-logo",
-    "output_path": "ENEM",
     "main_font": "Montserrat",
     "name_font": "Lexend Deca",
     "name_image": "https://raw.githubusercontent.com/ComicIvans/mail-signatures/6ef0a34df61949c2acac5fbde3e6617db171d1ab/ENEM/img/ENEM.png",
@@ -222,7 +218,6 @@
   {
     "id": "CREUP",
     "template": "original",
-    "output_path": "CREUP",
     "main_font": "Raleway",
     "name_font": "Red Rose",
     "name_image": "https://www.creup.es/documentos/imagen/firmas/CREUP.png",

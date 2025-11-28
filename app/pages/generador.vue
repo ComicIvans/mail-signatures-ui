@@ -22,7 +22,7 @@ useSeoMeta({
 })
 
 // Validate and parse JSON data
-const profiles = z.array(OrganizationConfigSchema).parse(profilesData)
+const profiles = ref(z.array(OrganizationConfigSchema).parse(profilesData))
 const requiredFields = z.array(SignatureFieldSchema).parse(fieldsData.required)
 const optionalFields = z.array(SignatureFieldSchema).parse(fieldsData.optional)
 
@@ -42,20 +42,35 @@ interface ProfileOption {
 }
 
 const profileOptions = computed<ProfileOption[]>(() =>
-  profiles.map((p) => ({
+  profiles.value.map((p) => ({
     id: p.id,
     organization: p.organization,
     label: `${p.id} - ${p.organization}`,
     value: p.id
   }))
 )
-const selectedProfileId = ref(profiles[0]?.id || '')
+const selectedProfileId = ref(profiles.value[0]?.id || '')
 const selectedProfile = computed<OrganizationConfig | undefined>(() =>
-  profiles.find((p) => p.id === selectedProfileId.value)
+  profiles.value.find((p) => p.id === selectedProfileId.value)
 )
 
 // Modal for profile configuration
 const isProfileModalOpen = ref(false)
+
+// List of existing profile IDs for duplicate checking in the modal
+const existingProfileIds = computed(() => profiles.value.map((p) => p.id))
+
+// Handle profile save from modal (originalId is the ID before any edits)
+function handleProfileSave(updatedProfile: OrganizationConfig, originalId: string) {
+  const index = profiles.value.findIndex((p) => p.id === originalId)
+  if (index !== -1) {
+    profiles.value[index] = updatedProfile
+    // Update selected profile ID if it was changed
+    if (selectedProfileId.value === originalId && originalId !== updatedProfile.id) {
+      selectedProfileId.value = updatedProfile.id
+    }
+  }
+}
 
 // Mode tabs (multiple mode disabled for now)
 const modeTabs: TabsItem[] = [
@@ -63,13 +78,13 @@ const modeTabs: TabsItem[] = [
     label: 'Individual',
     description: 'Genera una única firma',
     value: 'individual',
-    icon: 'i-lucide-user'
+    icon: 'i-tabler-user'
   },
   {
     label: 'Múltiple',
     description: 'Genera múltiples firmas a la vez',
     value: 'multiple',
-    icon: 'i-lucide-users',
+    icon: 'i-tabler-users',
     disabled: true
   }
 ]
@@ -233,14 +248,50 @@ watch(selectedProfileId, () => {
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">Perfil</h3>
-            <UButton
-              v-if="selectedProfile"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              icon="i-lucide-settings"
-              @click="isProfileModalOpen = true"
-            />
+            <div class="flex items-center gap-1">
+              <UDropdownMenu
+                :items="[
+                  [
+                    {
+                      label: 'Crear desde cero',
+                      icon: 'i-tabler-file-plus',
+                      disabled: true
+                    },
+                    {
+                      label: 'Importar desde archivo',
+                      icon: 'i-tabler-file-upload',
+                      disabled: true
+                    },
+                    {
+                      label: 'Desde perfil existente',
+                      icon: 'i-tabler-file-pencil',
+                      disabled: true
+                    }
+                  ]
+                ]"
+              >
+                <UTooltip text="Nuevo perfil">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-tabler-plus"
+                    aria-label="Crear nuevo perfil"
+                  />
+                </UTooltip>
+              </UDropdownMenu>
+              <UTooltip text="Configuración del perfil">
+                <UButton
+                  v-if="selectedProfile"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-tabler-settings"
+                  aria-label="Abrir configuración del perfil"
+                  @click="isProfileModalOpen = true"
+                />
+              </UTooltip>
+            </div>
           </div>
         </template>
         <USelectMenu
@@ -270,96 +321,12 @@ watch(selectedProfileId, () => {
     </div>
 
     <!-- Profile Configuration Modal -->
-    <UModal v-model:open="isProfileModalOpen">
-      <template #content>
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="font-semibold">Configuración del perfil</h3>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                icon="i-lucide-x"
-                @click="isProfileModalOpen = false"
-              />
-            </div>
-          </template>
-          <div v-if="selectedProfile" class="space-y-3 text-sm max-h-96 overflow-y-auto">
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">ID:</span>
-              <span>{{ selectedProfile.id }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Plantilla:</span>
-              <span>{{ selectedProfile.template }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Organización:</span>
-              <span>{{ selectedProfile.organization }}</span>
-            </div>
-            <div v-if="selectedProfile.organization_extra" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Org. extra:</span>
-              <span>{{ selectedProfile.organization_extra }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Color:</span>
-              <span class="flex items-center gap-2">
-                <span
-                  class="w-4 h-4 rounded-full border"
-                  :style="{ backgroundColor: selectedProfile.color }"
-                />
-                {{ selectedProfile.color }}
-              </span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Fuente principal:</span>
-              <span>{{ selectedProfile.main_font }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Fuente nombre:</span>
-              <span>{{ selectedProfile.name_font }}</span>
-            </div>
-            <div v-if="selectedProfile.phone" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Teléfono:</span>
-              <span>{{ selectedProfile.phone_country_code }} {{ selectedProfile.phone }}</span>
-            </div>
-            <div v-if="selectedProfile.internal_phone" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Extensión:</span>
-              <span>{{ selectedProfile.internal_phone }}</span>
-            </div>
-            <div v-if="selectedProfile.opt_mail" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Email opcional:</span>
-              <span>{{ selectedProfile.opt_mail }}</span>
-            </div>
-            <div v-if="selectedProfile.max_width" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Ancho máximo:</span>
-              <span>{{ selectedProfile.max_width }}px</span>
-            </div>
-            <div v-if="selectedProfile.links?.length" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Enlaces:</span>
-              <span>{{ selectedProfile.links.length }} redes sociales</span>
-            </div>
-            <div v-if="selectedProfile.sponsors?.length" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Patrocinadores:</span>
-              <span>{{ selectedProfile.sponsors.length }}</span>
-            </div>
-            <div v-if="selectedProfile.supporters?.length" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Colaboradores:</span>
-              <span>{{ selectedProfile.supporters.length }}</span>
-            </div>
-            <div v-if="selectedProfile.footer_address" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Dirección:</span>
-              <span class="text-xs">{{ selectedProfile.footer_address }}</span>
-            </div>
-            <div v-if="selectedProfile.footer_text" class="grid grid-cols-2 gap-2">
-              <span class="font-medium text-muted">Pie de página:</span>
-              <span class="text-xs text-muted">Texto legal configurado</span>
-            </div>
-          </div>
-        </UCard>
-      </template>
-    </UModal>
+    <ProfileConfigModal
+      v-model:open="isProfileModalOpen"
+      :profile="selectedProfile"
+      :existing-profile-ids="existingProfileIds"
+      @save="handleProfileSave"
+    />
 
     <!-- Main Content Area -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
@@ -411,7 +378,7 @@ watch(selectedProfileId, () => {
                   color="error"
                   variant="ghost"
                   size="xs"
-                  icon="i-lucide-x"
+                  icon="i-tabler-x"
                   @click="removeOptionalField(field.id)"
                 />
               </template>
@@ -422,6 +389,7 @@ watch(selectedProfileId, () => {
           <USelect
             v-if="availableOptionalFields.length > 0"
             v-model="selectedOptionalFieldToAdd"
+            icon="i-tabler-plus"
             :items="availableOptionalFields"
             placeholder="Añadir campo opcional"
             class="w-full"
@@ -457,7 +425,7 @@ watch(selectedProfileId, () => {
             <UButton
               color="neutral"
               variant="soft"
-              icon="i-lucide-copy"
+              icon="i-tabler-copy"
               class="flex-1 justify-center"
               @click="handleCopyHtml"
             >
@@ -466,7 +434,7 @@ watch(selectedProfileId, () => {
             <UButton
               color="neutral"
               variant="soft"
-              icon="i-lucide-download"
+              icon="i-tabler-download"
               class="flex-1 justify-center"
               @click="handleDownload"
             >

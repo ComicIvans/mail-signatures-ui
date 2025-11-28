@@ -21,33 +21,39 @@
 
     <template #right>
       <nav class="flex items-center gap-2" aria-label="Enlaces a redes sociales del autor">
-        <UButton
-          to="https://www.linkedin.com/in/ivansalidocobo"
-          target="_blank"
-          rel="noopener noreferrer"
-          icon="i-tabler-brand-linkedin"
-          variant="ghost"
-          color="neutral"
-          aria-label="Perfil de LinkedIn de Iván Salido Cobo (se abre en nueva pestaña)"
-        />
-        <UButton
-          to="https://instagram.com/ivansalidocobo"
-          target="_blank"
-          rel="noopener noreferrer"
-          icon="i-tabler-brand-instagram"
-          variant="ghost"
-          color="neutral"
-          aria-label="Perfil de Instagram de Iván Salido Cobo (se abre en nueva pestaña)"
-        />
-        <UButton
-          to="https://github.com/ComicIvans"
-          target="_blank"
-          rel="noopener noreferrer"
-          icon="i-tabler-brand-github"
-          variant="ghost"
-          color="neutral"
-          aria-label="Perfil de GitHub de Iván Salido Cobo (se abre en nueva pestaña)"
-        />
+        <UTooltip text="LinkedIn">
+          <UButton
+            to="https://www.linkedin.com/in/ivansalidocobo"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon="i-lucide-linkedin"
+            variant="ghost"
+            color="neutral"
+            aria-label="LinkedIn"
+          />
+        </UTooltip>
+        <UTooltip text="Instagram">
+          <UButton
+            to="https://instagram.com/ivansalidocobo"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon="i-lucide-instagram"
+            variant="ghost"
+            color="neutral"
+            aria-label="Instagram"
+          />
+        </UTooltip>
+        <UTooltip text="GitHub">
+          <UButton
+            to="https://github.com/ComicIvans"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon="i-lucide-github"
+            variant="ghost"
+            color="neutral"
+            aria-label="GitHub"
+          />
+        </UTooltip>
       </nav>
     </template>
   </UFooter>

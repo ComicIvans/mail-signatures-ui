@@ -45,7 +45,7 @@ const items = computed<NavigationMenuItem[]>(() => [
         <UColorModeButton aria-label="Cambiar modo de color" />
       </UTooltip>
 
-      <UTooltip text="Ver repositorio en GitHub (se abre en nueva pestaña)">
+      <UTooltip text="Ver repositorio en GitHub">
         <UButton
           color="neutral"
           variant="ghost"
@@ -53,7 +53,7 @@ const items = computed<NavigationMenuItem[]>(() => [
           target="_blank"
           rel="noopener noreferrer"
           icon="i-tabler-brand-github"
-          aria-label="Abrir repositorio de la página en GitHub (se abre en nueva pestaña)"
+          aria-label="Abrir repositorio de la página en GitHub"
         />
       </UTooltip>
     </template>

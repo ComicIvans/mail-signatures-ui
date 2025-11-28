@@ -24,7 +24,6 @@ export const SponsorSchema = z.object({
 export const OrganizationConfigSchema = z.object({
   id: z.string(),
   template: z.enum(['original', 'wide-logo']),
-  output_path: z.string(),
   main_font: z.string(),
   name_font: z.string(),
   name_image: z.url(),

@@ -37,6 +37,11 @@ Este proyecto es una evolución del generador original [mail-signatures](https:/
 - 📋 **Exportación** - Copiar HTML al portapapeles o descargar archivo HTML
 - ✅ **Validación** con Zod para asegurar datos correctos
 - 🔄 **Vista previa en tiempo real** que siempre muestra modo claro
+- ⚙️ **Gestión de perfiles** - Modal para ver, editar y exportar configuraciones de perfil:
+  - Edición completa de todos los campos del perfil
+  - Gestión de listas (redes sociales, patrocinadores, colaboradores) con reordenación animada
+  - Validación en tiempo real con detección de IDs duplicados
+  - Exportación a JSON
 
 ### Próximamente
 
@@ -52,6 +57,7 @@ Este proyecto es una evolución del generador original [mail-signatures](https:/
 - [Tabler Icons](https://tabler.io/icons) - Iconos
 - [Lucide Icons](https://lucide.dev/) - Iconos adicionales
 - [@nuxtjs/seo](https://nuxtseo.com/) - Módulo SEO
+- [@formkit/auto-animate](https://auto-animate.formkit.com/) - Animaciones automáticas
 - [TypeScript](https://www.typescriptlang.org/) - Tipado estático
 
 ## 📦 Instalación
@@ -96,6 +102,8 @@ app/
 ├── components/
 │   ├── AppHeader.vue              # Cabecera con navegación
 │   ├── AppFooter.vue              # Pie de página con enlaces sociales
+│   ├── profile/
+│   │   └── ConfigModal.vue        # Modal para editar configuración de perfil
 │   └── signature/
 │       ├── Preview.vue            # Selector de plantilla de vista previa
 │       ├── TemplateOriginal.vue   # Plantilla: avatar circular + barra horizontal
@@ -110,6 +118,8 @@ app/
 │   ├── index.vue                  # Página de inicio
 │   ├── como-usar.vue              # Guía de configuración
 │   └── generador.vue              # Generador de firmas
+├── plugins/
+│   └── auto-animate.ts            # Plugin para animaciones automáticas
 ├── types/
 │   └── signature.ts               # Tipos y esquemas Zod
 ├── app.vue                        # Layout principal
@@ -118,8 +128,8 @@ app/
 
 ## 🤝 Compatibilidad de clientes de correo
 
-| Cliente           | Estado                          |
-| ----------------- | ------------------------------- |
+| Cliente           | Estado                         |
+| ----------------- | ------------------------------ |
 | Webmail           | ✅ Funciona correctamente       |
 | Thunderbird       | ✅ Funciona correctamente       |
 | Thunderbird móvil | ✅ Funciona correctamente       |
