@@ -212,7 +212,7 @@ function handleCopyHtml() {
   if (!selectedProfile.value) return
   if (!validateUserData(userData)) return
 
-  const html = generateHtml(userData, selectedProfile.value)
+  const html = generateHtml(userData, selectedProfile.value, enabledOptionalFields.value)
   copyToClipboard(html)
 }
 
@@ -220,7 +220,7 @@ function handleDownload() {
   if (!selectedProfile.value) return
   if (!validateUserData(userData)) return
 
-  const html = generateHtml(userData, selectedProfile.value)
+  const html = generateHtml(userData, selectedProfile.value, enabledOptionalFields.value)
   downloadHtml(html, selectedProfile.value.id, userData.name, userData.output)
 }
 

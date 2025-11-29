@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { OrganizationConfig, UserSignatureData } from '~/types/signature'
+import { generateSignatureHtml, extractSignatureDiv } from '~/composables/useSignatureTemplates'
 
 const props = defineProps<{
   user: UserSignatureData
@@ -7,23 +8,14 @@ const props = defineProps<{
   enabledOptionalFields?: Set<string>
 }>()
 
-// Dynamic component based on profile template
-const templateComponent = computed(() => {
-  switch (props.profile.template) {
-    case 'wide-logo':
-      return resolveComponent('SignatureTemplateWideLogo')
-    case 'original':
-    default:
-      return resolveComponent('SignatureTemplateOriginal')
-  }
+// Generate the signature HTML and extract just the body content for preview
+const signatureHtml = computed(() => {
+  const fullHtml = generateSignatureHtml(props.user, props.profile, props.enabledOptionalFields)
+  return extractSignatureDiv(fullHtml)
 })
 </script>
 
 <template>
-  <component
-    :is="templateComponent"
-    :user="user"
-    :profile="profile"
-    :enabled-optional-fields="enabledOptionalFields"
-  />
+  <!-- eslint-disable-next-line vue/no-v-html -->
+  <div v-html="signatureHtml" />
 </template>

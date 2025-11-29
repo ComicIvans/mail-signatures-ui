@@ -364,6 +364,9 @@ const templateOptions = [
                 icon="i-tabler-typography"
                 class="w-full"
               />
+              <template #hint>
+                <span class="text-xs">Solo se aplicará si el destinatario la tiene</span>
+              </template>
             </UFormField>
 
             <UFormField
@@ -378,6 +381,9 @@ const templateOptions = [
                 icon="i-tabler-letter-case"
                 class="w-full"
               />
+              <template #hint>
+                <span class="text-xs">Solo se aplicará si el destinatario la tiene</span>
+              </template>
             </UFormField>
 
             <UFormField
@@ -424,20 +430,70 @@ const templateOptions = [
               />
             </UFormField>
 
-            <UFormField
-              label="Imagen del nombre (URL)"
-              required
-              class="w-full"
-              :error="validationErrors['name_image']"
-            >
-              <UInput
-                v-model="editedProfile.name_image"
-                type="url"
-                placeholder="https://example.com/logo.png"
-                icon="i-tabler-photo"
+            <!-- Name Image (object with image, alt, description, url) -->
+            <div class="p-4 border border-default rounded-lg space-y-3 bg-elevated/30">
+              <span class="text-xs font-medium text-muted">Imagen del nombre</span>
+              <UFormField
+                label="URL de la imagen"
+                required
                 class="w-full"
-              />
-            </UFormField>
+                :error="validationErrors['name_image.image']"
+              >
+                <UInput
+                  v-model="editedProfile.name_image.image"
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  icon="i-tabler-photo"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                label="Alt (texto alternativo)"
+                class="w-full"
+                :error="validationErrors['name_image.alt']"
+              >
+                <UInput
+                  v-model="editedProfile.name_image.alt"
+                  placeholder="👤"
+                  icon="i-tabler-alt"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">Emoji o texto breve para accesibilidad</span>
+                </template>
+              </UFormField>
+              <UFormField
+                label="Descripción"
+                class="w-full"
+                :error="validationErrors['name_image.description']"
+              >
+                <UInput
+                  v-model="editedProfile.name_image.description"
+                  placeholder="Logo de la organización"
+                  icon="i-tabler-info-circle"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">Se usa para title y aria-label</span>
+                </template>
+              </UFormField>
+              <UFormField
+                label="Enlace (URL)"
+                class="w-full"
+                :error="validationErrors['name_image.url']"
+              >
+                <UInput
+                  v-model="editedProfile.name_image.url"
+                  type="url"
+                  placeholder="https://example.com"
+                  icon="i-tabler-link"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">URL al hacer clic en la imagen</span>
+                </template>
+              </UFormField>
+            </div>
           </fieldset>
 
           <!-- Contact -->
@@ -587,7 +643,19 @@ const templateOptions = [
                     class="w-full"
                     :error="validationErrors[`links.${index}.alt`]"
                   >
-                    <UInput v-model="link.alt" placeholder="Descripción" size="sm" class="w-full" />
+                    <UInput v-model="link.alt" placeholder="🌐" size="sm" class="w-full" />
+                  </UFormField>
+                  <UFormField
+                    label="Descripción"
+                    class="w-full"
+                    :error="validationErrors[`links.${index}.description`]"
+                  >
+                    <UInput
+                      v-model="link.description"
+                      placeholder="Descripción del enlace"
+                      size="sm"
+                      class="w-full"
+                    />
                   </UFormField>
                 </div>
               </div>
@@ -704,7 +772,19 @@ const templateOptions = [
                   >
                     <UInput
                       v-model="sponsor.alt"
-                      placeholder="Descripción"
+                      placeholder="Nombre del patrocinador"
+                      size="sm"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Descripción"
+                    class="w-full"
+                    :error="validationErrors[`sponsors.${index}.description`]"
+                  >
+                    <UInput
+                      v-model="sponsor.description"
+                      placeholder="Descripción del patrocinador"
                       size="sm"
                       class="w-full"
                     />
@@ -852,7 +932,19 @@ const templateOptions = [
                   >
                     <UInput
                       v-model="supporter.alt"
-                      placeholder="Descripción"
+                      placeholder="Nombre del colaborador"
+                      size="sm"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Descripción"
+                    class="w-full"
+                    :error="validationErrors[`supporters.${index}.description`]"
+                  >
+                    <UInput
+                      v-model="supporter.description"
+                      placeholder="Descripción del colaborador"
                       size="sm"
                       class="w-full"
                     />

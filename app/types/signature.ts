@@ -8,16 +8,26 @@ import { z } from 'zod/v4'
 export const SocialLinkSchema = z.object({
   url: z.url(),
   image: z.url(),
-  alt: z.string()
+  alt: z.string(),
+  description: z.string().optional()
 })
 
 // Sponsor/Supporter schema
 export const SponsorSchema = z.object({
-  url: z.url(),
+  url: z.url().optional(),
   image: z.url(),
-  alt: z.string(),
+  alt: z.string().optional(),
+  description: z.string().optional(),
   width: z.number().optional(),
   height: z.number().optional()
+})
+
+// Name image schema (object with image URL, alt text, optional description and optional link URL)
+export const NameImageSchema = z.object({
+  image: z.url(),
+  alt: z.string().optional(),
+  description: z.string().optional(),
+  url: z.url().optional()
 })
 
 // Organization/Profile configuration schema
@@ -26,7 +36,7 @@ export const OrganizationConfigSchema = z.object({
   template: z.enum(['original', 'wide-logo']),
   main_font: z.string(),
   name_font: z.string(),
-  name_image: z.url(),
+  name_image: NameImageSchema,
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   organization: z.string(),
   organization_extra: z.string().optional(),
@@ -81,6 +91,10 @@ export type Sponsor = z.infer<typeof SponsorSchema>
 export type OrganizationConfig = z.infer<typeof OrganizationConfigSchema>
 export type SignatureField = z.infer<typeof SignatureFieldSchema>
 export type UserSignatureData = z.infer<typeof UserSignatureDataSchema>
+
+// Alias for template usage
+export type LinkItem = SocialLink
+export type SponsorItem = Sponsor
 
 // ============================================
 // Helper types
