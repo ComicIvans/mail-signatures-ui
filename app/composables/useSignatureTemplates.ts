@@ -65,9 +65,25 @@ export function buildTemplateData(
   const profileNameImageDescription = profileNameImage.description
   const profileNameImageLinkUrl = profileNameImage.url
 
-  // Get final name image value (user can override URL only)
+  // Get final name image values (user can override any field)
+  const userNameImage = user.name_image
+  const isNameImageEnabled = enabledOptionalFields?.has('name_image')
+
+  // User overrides profile values if name_image field is enabled
   const nameImageUrl =
-    getOptionalValue('name_image', user.name_image, profileNameImageUrl) || profileNameImageUrl
+    isNameImageEnabled && userNameImage?.image ? userNameImage.image : profileNameImageUrl
+  const nameImageAlt =
+    isNameImageEnabled && userNameImage?.alt !== undefined
+      ? userNameImage.alt || undefined
+      : profileNameImageAlt
+  const nameImageDescription =
+    isNameImageEnabled && userNameImage?.description !== undefined
+      ? userNameImage.description || undefined
+      : profileNameImageDescription
+  const nameImageLinkUrl =
+    isNameImageEnabled && userNameImage?.url !== undefined
+      ? userNameImage.url || undefined
+      : profileNameImageLinkUrl
 
   return {
     name: user.name || 'Nombre',
@@ -87,9 +103,9 @@ export function buildTemplateData(
       profile.organization_extra
     ),
     nameImage: nameImageUrl,
-    nameImageAlt: profileNameImageAlt,
-    nameImageDescription: profileNameImageDescription,
-    nameImageUrl: profileNameImageLinkUrl,
+    nameImageAlt: nameImageAlt,
+    nameImageDescription: nameImageDescription,
+    nameImageUrl: nameImageLinkUrl,
     mainFont: getOptionalValue('main_font', user.main_font, profile.main_font) || 'Arial',
     nameFont: getOptionalValue('name_font', user.name_font, profile.name_font) || 'Arial',
     color: profile.color,

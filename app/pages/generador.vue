@@ -109,7 +109,12 @@ function createEmptyUserData(): UserSignatureData {
     main_font: '',
     name_font: '',
     max_width: undefined,
-    name_image: ''
+    name_image: {
+      image: '',
+      alt: '',
+      description: '',
+      url: ''
+    }
   }
 }
 
@@ -149,7 +154,23 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
   if (field?.defaultFromProfile && selectedProfile.value) {
     const profileValue = selectedProfile.value[field.defaultFromProfile as keyof OrganizationConfig]
     if (profileValue !== undefined) {
-      ;(userData as Record<string, unknown>)[fieldId] = profileValue
+      // For name_image, copy the object structure from profile
+      if (fieldId === 'name_image' && typeof profileValue === 'object') {
+        const profileNameImage = profileValue as {
+          image: string
+          alt?: string
+          description?: string
+          url?: string
+        }
+        userData.name_image = {
+          image: profileNameImage.image,
+          alt: profileNameImage.alt || '',
+          description: profileNameImage.description || '',
+          url: profileNameImage.url || ''
+        }
+      } else {
+        ;(userData as Record<string, unknown>)[fieldId] = profileValue
+      }
     }
   }
 
@@ -161,7 +182,17 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
 
 function removeOptionalField(fieldId: string) {
   enabledOptionalFields.value.delete(fieldId)
-  ;(userData as Record<string, unknown>)[fieldId] = ''
+  // For name_image, reset to empty object
+  if (fieldId === 'name_image') {
+    userData.name_image = {
+      image: '',
+      alt: '',
+      description: '',
+      url: ''
+    }
+  } else {
+    ;(userData as Record<string, unknown>)[fieldId] = ''
+  }
 }
 
 // Get enabled optional fields as SignatureField array
@@ -357,23 +388,15 @@ watch(selectedProfileId, () => {
           </UFormField>
 
           <!-- Enabled optional fields -->
-          <UFormField
-            v-for="field in enabledOptionalFieldsList"
-            :id="`field-${field.id}`"
-            :key="field.id"
-            :label="field.label"
-            :error="validationErrors[field.id]"
-          >
-            <UInput
-              :model-value="getFieldValue(field.id)"
-              :type="field.type"
-              :placeholder="field.placeholder"
-              :icon="field.icon"
-              class="w-full"
-              :ui="{ trailing: 'pe-1' }"
-              @update:model-value="setFieldValue(field.id, $event as string)"
+          <template v-for="field in enabledOptionalFieldsList" :key="field.id">
+            <!-- Special handling for name_image (object with multiple fields) -->
+            <div
+              v-if="field.id === 'name_image'"
+              :id="`field-${field.id}`"
+              class="p-4 border border-default rounded-lg space-y-3 bg-elevated/30"
             >
-              <template #trailing>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-muted">{{ field.label }}</span>
                 <UButton
                   color="error"
                   variant="ghost"
@@ -381,9 +404,86 @@ watch(selectedProfileId, () => {
                   icon="i-tabler-x"
                   @click="removeOptionalField(field.id)"
                 />
+              </div>
+              <UFormField label="URL de la imagen" :error="validationErrors['name_image.image']">
+                <UInput
+                  v-model="userData.name_image!.image"
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  icon="i-tabler-photo"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                label="Alt (texto alternativo)"
+                :error="validationErrors['name_image.alt']"
+              >
+                <UInput
+                  v-model="userData.name_image!.alt"
+                  placeholder="👤"
+                  icon="i-tabler-alt"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">Emoji o texto breve para accesibilidad</span>
+                </template>
+              </UFormField>
+              <UFormField label="Descripción" :error="validationErrors['name_image.description']">
+                <UInput
+                  v-model="userData.name_image!.description"
+                  placeholder="Logo de la organización"
+                  icon="i-tabler-info-circle"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">Se usa para aria-label</span>
+                </template>
+              </UFormField>
+              <UFormField label="Enlace (URL)" :error="validationErrors['name_image.url']">
+                <UInput
+                  v-model="userData.name_image!.url"
+                  type="url"
+                  placeholder="https://example.com"
+                  icon="i-tabler-link"
+                  class="w-full"
+                />
+                <template #hint>
+                  <span class="text-xs">URL al hacer clic en la imagen</span>
+                </template>
+              </UFormField>
+            </div>
+
+            <!-- Regular optional fields -->
+            <UFormField
+              v-else
+              :id="`field-${field.id}`"
+              :label="field.label"
+              :error="validationErrors[field.id]"
+            >
+              <UInput
+                :model-value="getFieldValue(field.id)"
+                :type="field.type"
+                :placeholder="field.placeholder"
+                :icon="field.icon"
+                class="w-full"
+                :ui="{ trailing: 'pe-1' }"
+                @update:model-value="setFieldValue(field.id, $event as string)"
+              >
+                <template #trailing>
+                  <UButton
+                    color="error"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-tabler-x"
+                    @click="removeOptionalField(field.id)"
+                  />
+                </template>
+              </UInput>
+              <template v-if="field.id === 'main_font' || field.id === 'name_font'" #hint>
+                <span class="text-xs">Solo se aplicará si el destinatario la tiene</span>
               </template>
-            </UInput>
-          </UFormField>
+            </UFormField>
+          </template>
 
           <!-- Add optional field selector -->
           <USelect

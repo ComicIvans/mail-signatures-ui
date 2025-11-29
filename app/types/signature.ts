@@ -65,6 +65,16 @@ export const SignatureFieldSchema = z.object({
   defaultFromProfile: z.string().optional() // Profile field to use as default
 })
 
+// User name image schema (partial - all fields optional for user override)
+export const UserNameImageSchema = z
+  .object({
+    image: z.url().optional().or(z.literal('')),
+    alt: z.string().optional(),
+    description: z.string().optional(),
+    url: z.url().optional().or(z.literal(''))
+  })
+  .optional()
+
 // User signature data schema (for form validation)
 export const UserSignatureDataSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
@@ -79,7 +89,7 @@ export const UserSignatureDataSchema = z.object({
   main_font: z.string().optional(),
   name_font: z.string().optional(),
   max_width: z.number().optional(),
-  name_image: z.url().optional().or(z.literal(''))
+  name_image: UserNameImageSchema
 })
 
 // ============================================
