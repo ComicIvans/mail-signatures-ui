@@ -66,29 +66,52 @@ watch(
 // Validation
 // ============================================
 
-function validateProfile(): boolean {
-  if (!editedProfile.value) return false
-
-  // Check for duplicate ID first
+function getValidationErrors(profile: OrganizationConfig): Record<string, string> {
   if (isIdDuplicate.value) {
-    validationErrors.value = { id: 'Ya existe un perfil con este ID' }
-    return false
+    return { id: 'Ya existe un perfil con este ID' }
   }
 
-  const result = OrganizationConfigSchema.safeParse(editedProfile.value)
+  const result = OrganizationConfigSchema.safeParse(profile)
+
   if (result.success) {
-    validationErrors.value = {}
-    return true
+    return {}
   }
 
   const errors: Record<string, string> = {}
+
   for (const issue of result.error.issues) {
     const path = issue.path.join('.')
     errors[path] = issue.message
   }
+
+  return errors
+}
+
+function validateProfile(): boolean {
+  if (!editedProfile.value) return false
+
+  const errors = getValidationErrors(editedProfile.value)
+
+  if (Object.keys(errors).length === 0) {
+    validationErrors.value = {}
+    return true
+  }
+
   validationErrors.value = errors
   return false
 }
+
+watch(
+  editedProfile,
+  (profile) => {
+    if (!profile || Object.keys(validationErrors.value).length === 0) {
+      return
+    }
+
+    validationErrors.value = getValidationErrors(profile)
+  },
+  { deep: true }
+)
 
 // ============================================
 // Actions
@@ -261,16 +284,15 @@ const templateOptions = [
         <template #header>
           <div class="flex items-center justify-between">
             <h3 id="modal-title" class="font-semibold text-lg">Configuración del perfil</h3>
-            <UTooltip text="Cerrar">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                icon="i-tabler-x"
-                aria-label="Cerrar modal de configuración"
-                @click="handleClose"
-              />
-            </UTooltip>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              icon="i-tabler-x"
+              aria-label="Cerrar modal de configuración"
+              title="Cerrar"
+              @click="handleClose"
+            />
           </div>
         </template>
 

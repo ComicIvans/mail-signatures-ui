@@ -1,9 +1,8 @@
 <script setup lang="ts">
-useSeoMeta({
-  title: 'Cómo usar las firmas',
-  description:
-    'Aprende a configurar tu firma de correo electrónico en Thunderbird, Gmail y Webmail paso a paso.'
-})
+usePageSeo(
+  'Cómo usar las firmas',
+  'Aprende a configurar tu firma de correo electrónico en Thunderbird, Gmail y Webmail paso a paso.'
+)
 
 const selectedClient = ref('thunderbird')
 
@@ -31,7 +30,11 @@ const examples = [
     fullName: 'Delegación de Estudiantes de la Facultad de Ciencias',
     imageLoaded: 'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/defc.png',
     imageNoIcons:
-      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/defc-no-icons.png'
+      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/defc-no-icons.png',
+    imageLoadedWidth: 520,
+    imageLoadedHeight: 380,
+    imageNoIconsWidth: 520,
+    imageNoIconsHeight: 380
   },
   {
     id: 'dge',
@@ -39,7 +42,11 @@ const examples = [
     fullName: 'Delegación General de Estudiantes',
     imageLoaded: 'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/dge.png',
     imageNoIcons:
-      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/dge-no-icons.png'
+      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/dge-no-icons.png',
+    imageLoadedWidth: 500,
+    imageLoadedHeight: 420,
+    imageNoIconsWidth: 500,
+    imageNoIconsHeight: 380
   },
   {
     id: 'amat',
@@ -47,7 +54,11 @@ const examples = [
     fullName: 'Asociación de Estudiantes de Matemáticas y Estadística de la UGR',
     imageLoaded: 'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/amat.png',
     imageNoIcons:
-      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/amat-no-icons.png'
+      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/amat-no-icons.png',
+    imageLoadedWidth: 500,
+    imageLoadedHeight: 380,
+    imageNoIconsWidth: 500,
+    imageNoIconsHeight: 380
   },
   {
     id: 'creup',
@@ -55,7 +66,11 @@ const examples = [
     fullName: 'Coordinadora de Representantes de Estudiantes de Universidades Públicas',
     imageLoaded: 'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/creup.png',
     imageNoIcons:
-      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/creup-no-icons.png'
+      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/creup-no-icons.png',
+    imageLoadedWidth: 500,
+    imageLoadedHeight: 380,
+    imageNoIconsWidth: 500,
+    imageNoIconsHeight: 380
   },
   {
     id: 'enem',
@@ -63,166 +78,188 @@ const examples = [
     fullName: 'XXVI Encuentro Nacional de Estudiantes de Matemáticas',
     imageLoaded: 'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/enem.png',
     imageNoIcons:
-      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/enem-no-icons.png'
+      'https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/enem-no-icons.png',
+    imageLoadedWidth: 500,
+    imageLoadedHeight: 380,
+    imageNoIconsWidth: 500,
+    imageNoIconsHeight: 380
   }
 ]
+
+const exampleAccordionItems = computed(() =>
+  examples.map((example) => ({
+    label: `${example.name} - ${example.fullName}`,
+    value: example.id,
+    fullName: example.fullName,
+    imageLoaded: example.imageLoaded,
+    imageNoIcons: example.imageNoIcons,
+    imageLoadedWidth: example.imageLoadedWidth,
+    imageLoadedHeight: example.imageLoadedHeight,
+    imageNoIconsWidth: example.imageNoIconsWidth,
+    imageNoIconsHeight: example.imageNoIconsHeight
+  }))
+)
 </script>
 
 <template>
-  <UPage>
+  <UPage class="py-8">
     <UPageHeader
       title="Cómo usar las firmas"
-      description="Guía para configurar tu firma de correo electrónico en los principales clientes de correo."
+      description="Guía para configurar la firma en los principales clientes de correo y revisar la compatibilidad conocida."
     />
 
-    <UPageBody>
-      <!-- Instrucciones por cliente -->
-      <section aria-labelledby="instructions-title" class="mb-12">
-        <h2 id="instructions-title" class="text-2xl font-bold mb-6">
-          Instrucciones por cliente de correo
-        </h2>
+    <UPageBody class="space-y-8">
+      <UAlert
+        icon="i-tabler-alert-triangle"
+        color="warning"
+        title="Nota importante"
+        description="Estas instrucciones se revisaron por última vez en febrero de 2025. Algunas interfaces pueden haber cambiado ligeramente."
+      />
 
-        <UAlert
-          icon="i-tabler-alert-triangle"
-          color="warning"
-          title="Nota importante"
-          description="Estas instrucciones se revisaron por última vez en febrero de 2025. Es posible que las interfaces hayan cambiado desde entonces."
-          class="mb-6"
-        />
+      <section aria-labelledby="instructions-title" class="space-y-4">
+        <div>
+          <h2 id="instructions-title" class="text-2xl font-semibold text-highlighted">
+            Instrucciones por cliente
+          </h2>
+          <p class="mt-2 text-muted">
+            Selecciona el cliente de correo y sigue los pasos concretos para importar la firma.
+          </p>
+        </div>
 
-        <UTabs
-          v-model="selectedClient"
-          :items="clientTabs"
-          class="w-full"
-          :ui="{ list: 'grid grid-cols-3' }"
-        >
-          <template #content="{ item }">
-            <!-- Thunderbird -->
-            <div v-if="item.value === 'thunderbird'" class="p-4 space-y-4">
-              <ol class="list-decimal list-inside space-y-3 text-default">
-                <li>Abre Thunderbird y ve a la <strong>configuración de la cuenta</strong>.</li>
-                <li>Marca la casilla <strong>«Utilizar un archivo como firma»</strong>.</li>
-                <li>Selecciona el <strong>archivo de firma descargado</strong> (.html).</li>
-                <li>Guarda los cambios.</li>
-              </ol>
+        <UCard>
+          <UTabs
+            v-model="selectedClient"
+            :items="clientTabs"
+            class="w-full"
+            :ui="{ list: 'grid grid-cols-3' }"
+          >
+            <template #content="{ item }">
+              <div v-if="item.value === 'thunderbird'" class="space-y-4 p-4">
+                <ol class="list-decimal list-inside space-y-3 text-default">
+                  <li>Abre Thunderbird y ve a la <strong>configuración de la cuenta</strong>.</li>
+                  <li>Marca la casilla <strong>«Utilizar un archivo como firma»</strong>.</li>
+                  <li>Selecciona el <strong>archivo de firma descargado</strong> (.html).</li>
+                  <li>Guarda los cambios.</li>
+                </ol>
 
-              <figure>
-                <img
-                  src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/thunderbird.png"
-                  alt="Ventana de configuración de cuenta en Thunderbird mostrando la opción de firma con archivo HTML"
-                  class="rounded-lg ring ring-default mx-auto"
-                  loading="lazy"
-                  decoding="async"
+                <figure>
+                  <img
+                    src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/thunderbird.png"
+                    alt="Ventana de configuración de cuenta en Thunderbird mostrando la opción de firma con archivo HTML"
+                    width="770"
+                    height="754"
+                    loading="eager"
+                    fetchpriority="high"
+                    class="mx-auto rounded-lg ring ring-default"
+                    decoding="async"
+                  />
+                  <figcaption class="mt-2 text-sm text-muted">
+                    Configuración de firma en Thunderbird
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div v-else-if="item.value === 'gmail'" class="space-y-4 p-4">
+                <ol class="list-decimal list-inside space-y-3 text-default">
+                  <li>Abre el archivo HTML de la firma en tu navegador.</li>
+                  <li>
+                    Selecciona todo el contenido con <UKbd>Ctrl</UKbd> + <UKbd>A</UKbd> y cópialo
+                    con <UKbd>Ctrl</UKbd> + <UKbd>C</UKbd>.
+                  </li>
+                  <li>
+                    En Gmail, ve a <strong>Ajustes</strong> →
+                    <strong>Ver todos los ajustes</strong>.
+                  </li>
+                  <li>
+                    En la pestaña <strong>«General»</strong>, busca el apartado
+                    <strong>«Firma»</strong>.
+                  </li>
+                  <li>
+                    Crea una <strong>firma nueva</strong> y pega el contenido con
+                    <UKbd>Ctrl</UKbd> + <UKbd>V</UKbd>.
+                  </li>
+                  <li>Asigna esa firma como predeterminada para nuevos mensajes y respuestas.</li>
+                  <li>Guarda los cambios desde el final de la página.</li>
+                </ol>
+
+                <figure>
+                  <img
+                    src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/gmail.png"
+                    alt="Ajustes de Gmail mostrando la configuración de firma y valores predeterminados"
+                    width="1786"
+                    height="786"
+                    class="mx-auto rounded-lg ring ring-default"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <figcaption class="mt-2 text-sm text-muted">
+                    Configuración de firma en Gmail
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div v-else-if="item.value === 'webmail'" class="space-y-4 p-4">
+                <ol class="list-decimal list-inside space-y-3 text-default">
+                  <li>Abre el archivo HTML de la firma con un editor de texto.</li>
+                  <li>
+                    Copia solo el contenido dentro de
+                    <UBadge color="neutral" variant="subtle">
+                      <code>&lt;div&gt;...&lt;/div&gt;</code>
+                    </UBadge>
+                    sin incluir el resto del documento.
+                  </li>
+                  <li>
+                    En Webmail, ve a <strong>Configuración</strong> → <strong>Identidades</strong>.
+                  </li>
+                  <li>
+                    Pulsa el botón
+                    <UBadge color="neutral" variant="subtle"><code>&lt; &gt;</code></UBadge>
+                    para editar la firma como HTML.
+                  </li>
+                  <li>Pega el código sustituyendo el contenido anterior y guarda los cambios.</li>
+                </ol>
+
+                <UAlert
+                  icon="i-tabler-bulb"
+                  color="info"
+                  variant="soft"
+                  title="Por qué copiar solo el div"
+                  description="Si pegas el documento HTML completo, algunos webmail añaden un espacio inicial difícil de corregir después."
                 />
-                <figcaption class="text-sm text-muted mt-2">
-                  Configuración de firma en Thunderbird
-                </figcaption>
-              </figure>
-            </div>
 
-            <!-- Gmail -->
-            <div v-else-if="item.value === 'gmail'" class="p-4 space-y-4">
-              <ol class="list-decimal list-inside space-y-3 text-default">
-                <li>Abre el archivo HTML de la firma en tu navegador.</li>
-                <li>
-                  Selecciona todo el contenido con <UKbd>Ctrl</UKbd> + <UKbd>A</UKbd> y cópialo con
-                  <UKbd>Ctrl</UKbd> + <UKbd>C</UKbd>.
-                </li>
-                <li>
-                  En Gmail, ve a <strong>Ajustes</strong> → <strong>Ver todos los ajustes</strong>.
-                </li>
-                <li>
-                  En la pestaña <strong>«General»</strong>, busca el apartado
-                  <strong>«Firma»</strong>.
-                </li>
-                <li>
-                  Crea una <strong>firma nueva</strong> y pega el contenido con <UKbd>Ctrl</UKbd> +
-                  <UKbd>V</UKbd>.
-                </li>
-                <li>
-                  Configura los <strong>«Valores predeterminados de firma»</strong> para que se use
-                  automáticamente.
-                </li>
-                <li>Guarda los cambios con el botón del final de la página.</li>
-              </ol>
-
-              <figure>
-                <img
-                  src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/gmail.png"
-                  alt="Ajustes de Gmail mostrando la configuración de firma y valores predeterminados"
-                  class="rounded-lg ring ring-default mx-auto"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <figcaption class="text-sm text-muted mt-2">
-                  Configuración de firma en Gmail
-                </figcaption>
-              </figure>
-            </div>
-
-            <!-- Webmail -->
-            <div v-else-if="item.value === 'webmail'" class="p-4 space-y-4">
-              <ol class="list-decimal list-inside space-y-3 text-default">
-                <li>Abre el archivo HTML de la firma con un editor de texto.</li>
-                <li>
-                  Copia <strong>únicamente</strong> el contenido dentro de
-                  <UBadge color="neutral" variant="subtle"
-                    ><code>&lt;div&gt;...&lt;/div&gt;</code></UBadge
-                  >
-                  (sin incluir el resto del HTML).
-                </li>
-                <li>
-                  En Webmail, ve a <strong>Configuración</strong> → <strong>Identidades</strong>.
-                </li>
-                <li>
-                  Pulsa el botón
-                  <UBadge color="neutral" variant="subtle"><code>&lt; &gt;</code></UBadge>
-                  para editar la firma como HTML.
-                </li>
-                <li>
-                  Pega el código copiado, <strong>sustituyendo</strong> todo lo que hubiera antes.
-                </li>
-                <li>Guarda los cambios.</li>
-              </ol>
-
-              <UAlert
-                icon="i-tabler-bulb"
-                color="info"
-                title="¿Por qué copiar solo el div?"
-                description="Si pegas todo el contenido del archivo HTML, se añade un espacio en blanco al principio de la firma que es molesto eliminar manualmente."
-              />
-
-              <figure>
-                <img
-                  src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/webmail.png"
-                  alt="Ventana de configuración de identidades en Webmail con el editor HTML de firma"
-                  class="rounded-lg ring ring-default mx-auto"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <figcaption class="text-sm text-muted mt-2">
-                  Configuración de firma en Webmail
-                </figcaption>
-              </figure>
-            </div>
-          </template>
-        </UTabs>
+                <figure>
+                  <img
+                    src="https://raw.githubusercontent.com/ComicIvans/mail-signatures/main/img/webmail.png"
+                    alt="Ventana de configuración de identidades en Webmail con el editor HTML de firma"
+                    width="1916"
+                    height="959"
+                    class="mx-auto rounded-lg ring ring-default"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <figcaption class="mt-2 text-sm text-muted">
+                    Configuración de firma en Webmail
+                  </figcaption>
+                </figure>
+              </div>
+            </template>
+          </UTabs>
+        </UCard>
       </section>
 
-      <!-- Compatibilidad -->
-      <section aria-labelledby="compatibility-title" class="mb-12">
-        <h2 id="compatibility-title" class="text-2xl font-bold mb-6">
-          Compatibilidad con clientes de correo
-        </h2>
-
-        <p class="text-muted mb-4">
-          Las firmas HTML pueden verse de forma diferente según el cliente de correo. Esta es la
-          compatibilidad conocida:
-        </p>
+      <section aria-labelledby="compatibility-title" class="space-y-4">
+        <div>
+          <h2 id="compatibility-title" class="text-2xl font-semibold text-highlighted">
+            Compatibilidad conocida
+          </h2>
+          <p class="mt-2 text-muted">
+            Las firmas HTML pueden verse de forma distinta según el cliente de correo.
+          </p>
+        </div>
 
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <UCard v-for="item in compatibility" :key="item.client" class="text-center">
-            <div class="flex flex-col items-center gap-2">
+          <UCard v-for="item in compatibility" :key="item.client">
+            <div class="flex items-start gap-3">
               <UIcon
                 :name="
                   item.status === 'success'
@@ -232,7 +269,7 @@ const examples = [
                       : 'i-tabler-circle-x-filled'
                 "
                 :class="[
-                  'size-8',
+                  'mt-0.5 size-5 shrink-0',
                   item.status === 'success'
                     ? 'text-success'
                     : item.status === 'warning'
@@ -240,57 +277,56 @@ const examples = [
                       : 'text-error'
                 ]"
               />
-              <span class="font-medium">{{ item.client }}</span>
-              <span class="text-sm text-muted">{{ item.label }}</span>
+              <div>
+                <p class="font-medium text-default">{{ item.client }}</p>
+                <p class="text-sm text-muted">{{ item.label }}</p>
+              </div>
             </div>
           </UCard>
         </div>
       </section>
 
-      <!-- Ejemplos de firmas -->
-      <section aria-labelledby="examples-title">
-        <h2 id="examples-title" class="text-2xl font-bold mb-6">Ejemplos de firmas</h2>
+      <section aria-labelledby="examples-title" class="space-y-4">
+        <div>
+          <h2 id="examples-title" class="text-2xl font-semibold text-highlighted">
+            Ejemplos de firmas
+          </h2>
+          <p class="mt-2 text-muted">
+            Cada ejemplo se muestra con iconos cargados y sin cargar para anticipar ambos
+            escenarios.
+          </p>
+        </div>
 
-        <p class="text-muted mb-6">
-          A continuación puedes ver cómo se deberían ver las firmas en distintas organizaciones.
-          Cada firma se muestra con los iconos cargados y sin cargar, ya que algunos clientes de
-          correo pueden no mostrar las imágenes.
-        </p>
-
-        <UAccordion
-          :items="
-            examples.map((ex) => ({
-              label: `${ex.name} - ${ex.fullName}`,
-              value: ex.id,
-              content: ex.id
-            }))
-          "
-        >
+        <UAccordion :items="exampleAccordionItems">
           <template #body="{ item }">
-            <div class="grid gap-6 md:grid-cols-2 p-4">
+            <div class="grid gap-6 p-4 md:grid-cols-2">
               <figure>
-                <figcaption class="text-sm font-medium mb-2 text-default">
-                  <UIcon name="i-tabler-photo" class="size-4 inline" />
+                <figcaption class="mb-2 text-sm font-medium text-default">
+                  <UIcon name="i-tabler-photo" class="inline size-4" />
                   Con iconos cargados
                 </figcaption>
                 <img
-                  :src="examples.find((e) => e.id === item.content)?.imageLoaded"
-                  :alt="`Firma de ejemplo de ${examples.find((e) => e.id === item.content)?.fullName} con los iconos cargados correctamente`"
-                  class="rounded-lg ring ring-default mx-auto"
+                  :src="item.imageLoaded"
+                  :alt="`Firma de ejemplo de ${item.fullName} con los iconos cargados correctamente`"
+                  :width="item.imageLoadedWidth"
+                  :height="item.imageLoadedHeight"
+                  class="mx-auto rounded-lg ring ring-default"
                   loading="lazy"
                   decoding="async"
                 />
               </figure>
 
               <figure>
-                <figcaption class="text-sm font-medium mb-2 text-default">
-                  <UIcon name="i-tabler-photo-off" class="size-4 inline" />
+                <figcaption class="mb-2 text-sm font-medium text-default">
+                  <UIcon name="i-tabler-photo-off" class="inline size-4" />
                   Sin iconos (texto alternativo)
                 </figcaption>
                 <img
-                  :src="examples.find((e) => e.id === item.content)?.imageNoIcons"
-                  :alt="`Firma de ejemplo de ${examples.find((e) => e.id === item.content)?.fullName} mostrando el texto alternativo cuando los iconos no cargan`"
-                  class="rounded-lg ring ring-default mx-auto"
+                  :src="item.imageNoIcons"
+                  :alt="`Firma de ejemplo de ${item.fullName} mostrando el texto alternativo cuando los iconos no cargan`"
+                  :width="item.imageNoIconsWidth"
+                  :height="item.imageNoIconsHeight"
+                  class="mx-auto rounded-lg ring ring-default"
                   loading="lazy"
                   decoding="async"
                 />

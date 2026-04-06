@@ -101,6 +101,7 @@ export type Sponsor = z.infer<typeof SponsorSchema>
 export type OrganizationConfig = z.infer<typeof OrganizationConfigSchema>
 export type SignatureField = z.infer<typeof SignatureFieldSchema>
 export type UserSignatureData = z.infer<typeof UserSignatureDataSchema>
+export type SignaturePreviewMode = 'images' | 'alt'
 
 // Alias for template usage
 export type LinkItem = SocialLink

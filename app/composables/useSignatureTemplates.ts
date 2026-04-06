@@ -143,8 +143,9 @@ function generateSocialLink(link: LinkItem, size: number = 35): string {
   const titleAttr = hasDesc ? ` title="${link.description}"` : ''
   const ariaLabelAttr = hasDesc ? ` aria-label="${link.description}"` : ''
   const altAttr = hasAlt ? ` alt="${link.alt}"` : ''
+  const imgAriaHiddenAttr = hasDesc ? ' aria-hidden="true"' : ''
 
-  return `<a href="${link.url}"${titleAttr}${ariaLabelAttr} style="border-radius: 50%; color: inherit; text-decoration: none; margin-right: 5px; min-width: ${size}px; min-height: ${size}px; display: inline-block; text-align: center; vertical-align: middle; background-color: white; font-weight: bold; font-size: 14pt"><img${altAttr} aria-hidden="true" moz-do-not-send="true" style="font-size: 16pt; max-width: ${size}px; max-height: ${size}px; display: block" height="${size}" width="${size}" src="${link.image}" /></a>`
+  return `<a href="${link.url}"${titleAttr}${ariaLabelAttr} style="border-radius: 50%; color: inherit; text-decoration: none; margin: 0 5px 5px 0; width: ${size}px; height: ${size}px; display: inline-block; text-align: center; vertical-align: middle; background-color: white; font-weight: bold; font-size: 14pt"><img${altAttr}${imgAriaHiddenAttr} moz-do-not-send="true" style="width: ${size}px; height: ${size}px; display: block" height="${size}" width="${size}" src="${link.image}" /></a>`
 }
 
 /**
@@ -157,7 +158,7 @@ function generateSocialLinksBar(links?: LinkItem[], _maxWidth?: number): string 
   const linksHtml = links.map((link) => generateSocialLink(link)).join('\n                    ')
 
   // 18 spaces before <div> to match the </table> indentation on same line
-  return `\n                  <div style="margin-bottom: 20px">
+  return `\n                  <div style="margin-bottom: 15px">
                     ${linksHtml}
                   </div>`
 }
@@ -180,11 +181,16 @@ function generateSponsorImage(item: SponsorItem, maxWidth?: number): string {
   const heightAttr = item.height ? ` height="${item.height}"` : ''
 
   const imgStyle = `max-width: ${maxWidthCss}; width: ${widthCss}; height: ${heightCss}; display: block`
+  const linkedImgAriaHiddenAttr = hasDesc ? ' aria-hidden="true"' : ''
+  const staticImgAriaHiddenAttr = hasDesc ? ' aria-hidden="true"' : ''
+  const staticWrapperLabelAttrs = hasDesc
+    ? ` role="img" aria-label="${item.description}" title="${item.description}"`
+    : ''
 
   if (item.url) {
-    return `<a href="${item.url}"${titleAttr}${ariaLabelAttr} style="color: inherit; text-decoration: none; display: inline-block; margin-right: 5px; margin-bottom: 5px"><img${altAttr} aria-hidden="true" moz-do-not-send="true" style="${imgStyle}"${widthAttr}${heightAttr} src="${item.image}" /></a>`
+    return `<a href="${item.url}"${titleAttr}${ariaLabelAttr} style="color: inherit; text-decoration: none; display: inline-block; margin-right: 5px; margin-bottom: 5px"><img${altAttr}${linkedImgAriaHiddenAttr} moz-do-not-send="true" style="${imgStyle}"${widthAttr}${heightAttr} src="${item.image}" /></a>`
   } else {
-    return `<span style="display: inline-block; margin-right: 5px; margin-bottom: 5px"><img${altAttr} aria-hidden="true" moz-do-not-send="true" style="${imgStyle}"${widthAttr}${heightAttr} src="${item.image}" /></span>`
+    return `<span${staticWrapperLabelAttrs} style="display: inline-block; margin-right: 5px; margin-bottom: 5px"><img${altAttr}${staticImgAriaHiddenAttr} moz-do-not-send="true" style="${imgStyle}"${widthAttr}${heightAttr} src="${item.image}" /></span>`
   }
 }
 
@@ -302,7 +308,9 @@ function generateNameImageBlock(
 ): string {
   // alt from profile or emoji fallback, description is for aria-label accessibility
   const imgAlt = alt || '👤'
-  const ariaLabelAttr = description ? ` aria-label="${description}"` : ''
+  const linkAriaLabelAttr = description ? ` aria-label="${description}"` : ''
+  const imgAriaLabelAttr = description && !url ? ` aria-label="${description}"` : ''
+  const imgAriaHiddenAttr = description && url ? ' aria-hidden="true"' : ''
 
   let imgStyle: string
   let imgWidth: number
@@ -318,11 +326,12 @@ function generateNameImageBlock(
     imgHeight = size
   }
 
-  const imgHtml = `<img alt="${imgAlt}"${ariaLabelAttr} role="img" moz-do-not-send="true" style="${imgStyle}" height="${imgHeight}" width="${imgWidth}" src="${nameImage}" />`
+  const imgRoleAttr = url ? '' : ' role="img"'
+  const imgHtml = `<img alt="${imgAlt}"${imgAriaLabelAttr}${imgAriaHiddenAttr}${imgRoleAttr} moz-do-not-send="true" style="${imgStyle}" height="${imgHeight}" width="${imgWidth}" src="${nameImage}" />`
 
   // Wrap in link if URL is provided
   if (url) {
-    return `<a href="${url}"${ariaLabelAttr} style="color: inherit; text-decoration: none">${imgHtml}</a>`
+    return `<a href="${url}"${linkAriaLabelAttr} style="color: inherit; text-decoration: none">${imgHtml}</a>`
   }
 
   return imgHtml

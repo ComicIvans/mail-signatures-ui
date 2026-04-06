@@ -6,7 +6,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "nuxi cleanup && nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
@@ -15,21 +15,28 @@
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
-    "@iconify-json/lucide": "^1.2.74",
-    "@iconify-json/tabler": "^1.2.23",
-    "@nuxt/ui": "^4.2.1",
-    "nuxt": "^4.2.1",
-    "zod": "^4.1.13"
+    "@nuxt/icon": "2.2.1",
+    "@nuxt/ui": "4.6.1",
+    "@nuxtjs/seo": "5.1.0",
+    "@resvg/resvg-js": "^2.6.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "nuxt": "^4.4.2",
+    "satori": "^0.19.3",
+    "tailwindcss": "^4.2.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^1.10.0",
-    "@nuxtjs/seo": "^3.2.2",
-    "eslint": "^9.39.1",
+    "@iconify-json/lucide": "^1.2.101",
+    "@iconify-json/simple-icons": "^1.2.76",
+    "@iconify-json/tabler": "^1.2.33",
+    "@nuxt/eslint": "1.15.2",
+    "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.3",
-    "vue-tsc": "^3.1.5"
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^6.0.2",
+    "vue-tsc": "^3.2.6"
   },
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "pnpm@10.33.0"
 }

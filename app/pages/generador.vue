@@ -1,39 +1,26 @@
 <script setup lang="ts">
-import type { AcceptableValue, SelectItem, TabsItem } from '@nuxt/ui'
-import { z } from 'zod/v4'
+import type { AcceptableValue, SelectItem } from '@nuxt/ui'
 import {
   type OrganizationConfig,
   type SignatureField,
+  type SignaturePreviewMode,
   type UserSignatureData,
-  OrganizationConfigSchema,
-  SignatureFieldSchema,
   UserSignatureDataSchema
 } from '~/types/signature'
+import {
+  createEmptyUserSignatureData,
+  useSignatureCatalog
+} from '~/composables/useSignatureCatalog'
 import { useSignatureGenerator } from '~/composables/useSignatureGenerator'
 
-// Import JSON data
-import profilesData from '~/data/profiles.json'
-import fieldsData from '~/data/fields.json'
+usePageSeo(
+  'Generador',
+  'Genera tu firma de correo personalizada, selecciona el perfil de organización y exporta el HTML listo para usar.'
+)
 
-useSeoMeta({
-  title: 'Generador de firmas',
-  description:
-    'Genera tu firma de correo electrónico personalizada. Elige el perfil de organización y completa tus datos personales.'
-})
+const { profiles, requiredFields, optionalFields } = useSignatureCatalog()
+const { generateHtml, copyToClipboard, downloadHtml, downloadPreviewJpg } = useSignatureGenerator()
 
-// Validate and parse JSON data
-const profiles = ref(z.array(OrganizationConfigSchema).parse(profilesData))
-const requiredFields = z.array(SignatureFieldSchema).parse(fieldsData.required)
-const optionalFields = z.array(SignatureFieldSchema).parse(fieldsData.optional)
-
-// Composable for signature generation
-const { generateHtml, copyToClipboard, downloadHtml } = useSignatureGenerator()
-
-// ============================================
-// State
-// ============================================
-
-// Profile selection
 interface ProfileOption {
   id: string
   organization: string
@@ -41,105 +28,197 @@ interface ProfileOption {
   value: string
 }
 
+interface PersistedGeneratorState {
+  version: 1
+  selectedProfileId: string
+  selectedPreviewMode: SignaturePreviewMode
+  enabledOptionalFields: string[]
+  userData: UserSignatureData
+}
+
+const GENERATOR_STORAGE_KEY = 'mail-signatures:generator-state:v1'
+const PERSIST_DEBOUNCE_MS = 250
+
 const profileOptions = computed<ProfileOption[]>(() =>
-  profiles.value.map((p) => ({
-    id: p.id,
-    organization: p.organization,
-    label: `${p.id} - ${p.organization}`,
-    value: p.id
+  profiles.value.map((profile) => ({
+    id: profile.id,
+    organization: profile.organization,
+    label: `${profile.id} - ${profile.organization}`,
+    value: profile.id
   }))
 )
+
 const selectedProfileId = ref(profiles.value[0]?.id || '')
 const selectedProfile = computed<OrganizationConfig | undefined>(() =>
-  profiles.value.find((p) => p.id === selectedProfileId.value)
+  profiles.value.find((profile) => profile.id === selectedProfileId.value)
 )
 
-// Modal for profile configuration
 const isProfileModalOpen = ref(false)
+const existingProfileIds = computed(() => profiles.value.map((profile) => profile.id))
 
-// List of existing profile IDs for duplicate checking in the modal
-const existingProfileIds = computed(() => profiles.value.map((p) => p.id))
-
-// Handle profile save from modal (originalId is the ID before any edits)
 function handleProfileSave(updatedProfile: OrganizationConfig, originalId: string) {
-  const index = profiles.value.findIndex((p) => p.id === originalId)
-  if (index !== -1) {
-    profiles.value[index] = updatedProfile
-    // Update selected profile ID if it was changed
-    if (selectedProfileId.value === originalId && originalId !== updatedProfile.id) {
-      selectedProfileId.value = updatedProfile.id
-    }
+  const index = profiles.value.findIndex((profile) => profile.id === originalId)
+
+  if (index === -1) return
+
+  profiles.value[index] = updatedProfile
+
+  if (selectedProfileId.value === originalId && originalId !== updatedProfile.id) {
+    selectedProfileId.value = updatedProfile.id
   }
 }
 
-// Mode tabs (multiple mode disabled for now)
-const modeTabs: TabsItem[] = [
-  {
-    label: 'Individual',
-    description: 'Genera una única firma',
-    value: 'individual',
-    icon: 'i-tabler-user'
-  },
-  {
-    label: 'Múltiple',
-    description: 'Genera múltiples firmas a la vez',
-    value: 'multiple',
-    icon: 'i-tabler-users',
-    disabled: true
+const selectedPreviewMode = ref<SignaturePreviewMode>('images')
+const userData = reactive<UserSignatureData>(createEmptyUserSignatureData())
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function restoreGeneratorState(): void {
+  if (!import.meta.client) {
+    return
   }
-]
-const selectedMode = ref('individual')
 
-// ============================================
-// Form data
-// ============================================
+  const rawState = window.sessionStorage.getItem(GENERATOR_STORAGE_KEY)
 
-// Create initial user data with empty values
-function createEmptyUserData(): UserSignatureData {
-  return {
-    name: '',
-    position: '',
-    mail: '',
-    output: '',
-    phone: '',
-    phone_country_code: '',
-    internal_phone: '',
-    opt_mail: '',
-    organization_extra: '',
-    main_font: '',
-    name_font: '',
-    max_width: undefined,
-    name_image: {
-      image: '',
-      alt: '',
-      description: '',
-      url: ''
+  if (!rawState) {
+    return
+  }
+
+  try {
+    const parsed = JSON.parse(rawState) as PersistedGeneratorState
+
+    if (!parsed || parsed.version !== 1) {
+      return
     }
+
+    if (typeof parsed.selectedProfileId === 'string') {
+      const hasProfile = profiles.value.some((profile) => profile.id === parsed.selectedProfileId)
+
+      if (hasProfile) {
+        selectedProfileId.value = parsed.selectedProfileId
+      }
+    }
+
+    if (parsed.selectedPreviewMode === 'images' || parsed.selectedPreviewMode === 'alt') {
+      selectedPreviewMode.value = parsed.selectedPreviewMode
+    }
+
+    const optionalFieldIds = new Set(optionalFields.map((field) => field.id))
+
+    if (Array.isArray(parsed.enabledOptionalFields)) {
+      enabledOptionalFields.value = new Set(
+        parsed.enabledOptionalFields.filter((fieldId) => optionalFieldIds.has(fieldId))
+      )
+    }
+
+    const fallbackUserData = createEmptyUserSignatureData()
+    const restoredUserData: Record<string, unknown> = isRecord(parsed.userData)
+      ? parsed.userData
+      : {}
+    const mergedUserData: UserSignatureData = {
+      ...fallbackUserData,
+      ...(restoredUserData as Partial<UserSignatureData>)
+    }
+
+    const restoredNameImage = isRecord(restoredUserData.name_image)
+      ? restoredUserData.name_image
+      : {}
+
+    mergedUserData.name_image = {
+      ...fallbackUserData.name_image,
+      ...(restoredNameImage as NonNullable<UserSignatureData['name_image']>)
+    }
+
+    Object.assign(userData, mergedUserData)
+  } catch {
+    window.sessionStorage.removeItem(GENERATOR_STORAGE_KEY)
   }
 }
 
-const userData = reactive<UserSignatureData>(createEmptyUserData())
+function persistGeneratorState(): void {
+  if (!import.meta.client) {
+    return
+  }
 
-// Helper functions for dynamic field access
+  const payload: PersistedGeneratorState = {
+    version: 1,
+    selectedProfileId: selectedProfileId.value,
+    selectedPreviewMode: selectedPreviewMode.value,
+    enabledOptionalFields: Array.from(enabledOptionalFields.value),
+    userData: {
+      ...userData,
+      name_image: {
+        image: userData.name_image?.image ?? '',
+        alt: userData.name_image?.alt ?? '',
+        description: userData.name_image?.description ?? '',
+        url: userData.name_image?.url ?? ''
+      }
+    }
+  }
+
+  window.sessionStorage.setItem(GENERATOR_STORAGE_KEY, JSON.stringify(payload))
+}
+
+let persistTimeoutId: number | undefined
+
+function schedulePersistGeneratorState(): void {
+  if (!import.meta.client) {
+    return
+  }
+
+  if (persistTimeoutId !== undefined) {
+    window.clearTimeout(persistTimeoutId)
+  }
+
+  persistTimeoutId = window.setTimeout(() => {
+    persistGeneratorState()
+    persistTimeoutId = undefined
+  }, PERSIST_DEBOUNCE_MS)
+}
+
+function flushPersistGeneratorState(): void {
+  if (!import.meta.client) {
+    return
+  }
+
+  if (persistTimeoutId !== undefined) {
+    window.clearTimeout(persistTimeoutId)
+    persistTimeoutId = undefined
+  }
+
+  persistGeneratorState()
+}
+
 function getFieldValue(fieldId: string): string {
-  return ((userData as Record<string, unknown>)[fieldId] as string) || ''
+  const value = (userData as Record<string, unknown>)[fieldId]
+
+  if (typeof value === 'number') {
+    return String(value)
+  }
+
+  return (value as string) || ''
 }
 
 function setFieldValue(fieldId: string, value: string): void {
+  if (fieldId === 'max_width') {
+    ;(userData as Record<string, unknown>)[fieldId] = value ? Number(value) : undefined
+    return
+  }
+
   ;(userData as Record<string, unknown>)[fieldId] = value
 }
 
-// Track which optional fields are enabled
 const enabledOptionalFields = ref<Set<string>>(new Set())
 
-// Available optional fields (not yet enabled)
 const availableOptionalFields = computed<SelectItem[]>(() =>
   optionalFields
-    .filter((f) => !enabledOptionalFields.value.has(f.id))
-    .map((f) => ({
-      label: f.label,
-      value: f.id,
-      icon: f.icon
+    .filter((field) => !enabledOptionalFields.value.has(field.id))
+    .map((field) => ({
+      label: field.label,
+      value: field.id,
+      icon: field.icon
     }))
 )
 
@@ -147,14 +226,14 @@ const selectedOptionalFieldToAdd = ref<string | undefined>(undefined)
 
 function addOptionalField(fieldId: AcceptableValue | undefined) {
   if (!fieldId || typeof fieldId !== 'string') return
+
   enabledOptionalFields.value.add(fieldId)
 
-  // Set default value from profile if available
-  const field = optionalFields.find((f) => f.id === fieldId)
+  const field = optionalFields.find((item) => item.id === fieldId)
   if (field?.defaultFromProfile && selectedProfile.value) {
     const profileValue = selectedProfile.value[field.defaultFromProfile as keyof OrganizationConfig]
+
     if (profileValue !== undefined) {
-      // For name_image, copy the object structure from profile
       if (fieldId === 'name_image' && typeof profileValue === 'object') {
         const profileNameImage = profileValue as {
           image: string
@@ -162,6 +241,7 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
           description?: string
           url?: string
         }
+
         userData.name_image = {
           image: profileNameImage.image,
           alt: profileNameImage.alt || '',
@@ -174,7 +254,6 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
     }
   }
 
-  // Clear selection after adding - use nextTick to ensure UI updates
   nextTick(() => {
     selectedOptionalFieldToAdd.value = undefined
   })
@@ -182,7 +261,7 @@ function addOptionalField(fieldId: AcceptableValue | undefined) {
 
 function removeOptionalField(fieldId: string) {
   enabledOptionalFields.value.delete(fieldId)
-  // For name_image, reset to empty object
+
   if (fieldId === 'name_image') {
     userData.name_image = {
       image: '',
@@ -190,43 +269,62 @@ function removeOptionalField(fieldId: string) {
       description: '',
       url: ''
     }
-  } else {
-    ;(userData as Record<string, unknown>)[fieldId] = ''
+    return
   }
+
+  if (fieldId === 'max_width') {
+    ;(userData as Record<string, unknown>)[fieldId] = undefined
+    return
+  }
+
+  ;(userData as Record<string, unknown>)[fieldId] = ''
 }
 
-// Get enabled optional fields as SignatureField array
 const enabledOptionalFieldsList = computed<SignatureField[]>(() =>
-  optionalFields.filter((f) => enabledOptionalFields.value.has(f.id))
+  optionalFields.filter((field) => enabledOptionalFields.value.has(field.id))
 )
 
-// ============================================
-// Validation
-// ============================================
+const previewCaptureContainer = ref<HTMLElement | null>(null)
 
 const validationErrors = ref<Record<string, string>>({})
 
+function getValidationErrors(data: UserSignatureData): Record<string, string> {
+  const result = UserSignatureDataSchema.safeParse(data)
+
+  if (result.success) {
+    return {}
+  }
+
+  const errors: Record<string, string> = {}
+
+  for (const issue of result.error.issues) {
+    errors[issue.path.join('.')] = issue.message
+  }
+
+  return errors
+}
+
 function validateUserData(data: UserSignatureData): boolean {
   const result = UserSignatureDataSchema.safeParse(data)
+
   if (result.success) {
     validationErrors.value = {}
     return true
   }
 
   const errors: Record<string, string> = {}
+
   for (const issue of result.error.issues) {
-    const path = issue.path.join('.')
-    errors[path] = issue.message
+    errors[issue.path.join('.')] = issue.message
   }
+
   validationErrors.value = errors
 
-  // Scroll to first field with error
   const firstErrorField = result.error.issues[0]?.path[0]
   if (firstErrorField) {
     nextTick(() => {
       const element = document.getElementById(`field-${String(firstErrorField)}`)
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Focus the input inside the field
       const input = element?.querySelector('input')
       input?.focus()
     })
@@ -235,314 +333,404 @@ function validateUserData(data: UserSignatureData): boolean {
   return false
 }
 
-// ============================================
-// Actions
-// ============================================
+watch(
+  userData,
+  () => {
+    if (Object.keys(validationErrors.value).length === 0) {
+      return
+    }
+
+    validationErrors.value = getValidationErrors(userData)
+  },
+  { deep: true }
+)
+
+watch(userData, schedulePersistGeneratorState, { deep: true })
+
+watch([selectedProfileId, selectedPreviewMode], schedulePersistGeneratorState)
+
+watch(() => Array.from(enabledOptionalFields.value), schedulePersistGeneratorState, { deep: false })
 
 function handleCopyHtml() {
-  if (!selectedProfile.value) return
-  if (!validateUserData(userData)) return
+  if (!selectedProfile.value || !validateUserData(userData)) return
 
   const html = generateHtml(userData, selectedProfile.value, enabledOptionalFields.value)
   copyToClipboard(html)
 }
 
 function handleDownload() {
-  if (!selectedProfile.value) return
-  if (!validateUserData(userData)) return
+  if (!selectedProfile.value || !validateUserData(userData)) return
 
   const html = generateHtml(userData, selectedProfile.value, enabledOptionalFields.value)
   downloadHtml(html, selectedProfile.value.id, userData.name, userData.output)
 }
 
-// Update defaults for enabled optional fields when profile changes
+async function handleDownloadPreviewJpg() {
+  if (!selectedProfile.value || !validateUserData(userData)) return
+
+  await nextTick()
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve()
+      })
+    })
+  })
+
+  const previewElement = previewCaptureContainer.value?.querySelector(
+    '.preview-render-root'
+  ) as HTMLElement | null
+
+  await downloadPreviewJpg(
+    previewElement,
+    selectedProfile.value.id,
+    userData.name,
+    selectedPreviewMode.value,
+    userData.output
+  )
+}
+
+const previewDownloadItems = computed(() => [
+  [
+    {
+      label: 'Descargar JPG',
+      icon: 'i-tabler-photo-down',
+      disabled: !selectedProfile.value,
+      onSelect: () => handleDownloadPreviewJpg()
+    }
+  ]
+])
+
+const previewShowsImages = computed({
+  get: () => selectedPreviewMode.value === 'images',
+  set: (value: boolean) => {
+    selectedPreviewMode.value = value ? 'images' : 'alt'
+  }
+})
+
 watch(selectedProfileId, () => {
   for (const fieldId of enabledOptionalFields.value) {
-    const field = optionalFields.find((f) => f.id === fieldId)
-    if (field?.defaultFromProfile && selectedProfile.value) {
-      const profileValue =
-        selectedProfile.value[field.defaultFromProfile as keyof OrganizationConfig]
-      if (profileValue !== undefined && !(userData as Record<string, unknown>)[fieldId]) {
-        ;(userData as Record<string, unknown>)[fieldId] = profileValue
-      }
+    const field = optionalFields.find((item) => item.id === fieldId)
+
+    if (!field?.defaultFromProfile || !selectedProfile.value) {
+      continue
+    }
+
+    const profileValue = selectedProfile.value[field.defaultFromProfile as keyof OrganizationConfig]
+    if (profileValue !== undefined && !(userData as Record<string, unknown>)[fieldId]) {
+      ;(userData as Record<string, unknown>)[fieldId] = profileValue
     }
   }
+})
+
+onMounted(() => {
+  restoreGeneratorState()
+})
+
+onBeforeUnmount(() => {
+  flushPersistGeneratorState()
 })
 </script>
 
 <template>
-  <UContainer class="py-8">
-    <!-- Configuration Row -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Profile Card -->
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold">Perfil</h3>
-            <div class="flex items-center gap-1">
-              <UDropdownMenu
-                :items="[
-                  [
-                    {
-                      label: 'Crear desde cero',
-                      icon: 'i-tabler-file-plus',
-                      disabled: true
-                    },
-                    {
-                      label: 'Importar desde archivo',
-                      icon: 'i-tabler-file-upload',
-                      disabled: true
-                    },
-                    {
-                      label: 'Desde perfil existente',
-                      icon: 'i-tabler-file-pencil',
-                      disabled: true
-                    }
-                  ]
-                ]"
-              >
-                <UTooltip text="Nuevo perfil">
-                  <UButton
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    icon="i-tabler-plus"
-                    aria-label="Crear nuevo perfil"
-                  />
-                </UTooltip>
-              </UDropdownMenu>
-              <UTooltip text="Configuración del perfil">
-                <UButton
-                  v-if="selectedProfile"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  icon="i-tabler-settings"
-                  aria-label="Abrir configuración del perfil"
-                  @click="isProfileModalOpen = true"
-                />
-              </UTooltip>
-            </div>
-          </div>
-        </template>
-        <USelectMenu
-          v-model="selectedProfileId"
-          :items="profileOptions"
-          class="w-full"
-          value-key="value"
-        >
-          <template #item="{ item }">
-            <div class="py-1">
-              <span class="font-semibold">{{ (item as ProfileOption).id }}</span>
-              <p class="text-sm text-muted whitespace-normal">
-                {{ (item as ProfileOption).organization }}
-              </p>
-            </div>
-          </template>
-        </USelectMenu>
-      </UCard>
-
-      <!-- Mode Card -->
-      <UCard>
-        <template #header>
-          <h3 class="font-semibold">Modo</h3>
-        </template>
-        <UTabs v-model="selectedMode" :items="modeTabs" :content="false" class="w-full" />
-      </UCard>
-    </div>
-
-    <!-- Profile Configuration Modal -->
-    <ProfileConfigModal
-      v-model:open="isProfileModalOpen"
-      :profile="selectedProfile"
-      :existing-profile-ids="existingProfileIds"
-      @save="handleProfileSave"
+  <UPage class="py-8">
+    <UPageHeader
+      title="Generador de firmas"
+      description="Selecciona un perfil, completa los datos imprescindibles y exporta el HTML listo para usar."
     />
 
-    <!-- Main Content Area -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
-      <!-- Form Section -->
-      <UCard>
-        <template #header>
-          <h3 class="font-semibold">Campos de la firma</h3>
-        </template>
+    <UPageBody class="space-y-6">
+      <ProfileConfigModal
+        v-model:open="isProfileModalOpen"
+        :profile="selectedProfile"
+        :existing-profile-ids="existingProfileIds"
+        @save="handleProfileSave"
+      />
 
-        <div class="space-y-4">
-          <!-- Required fields -->
-          <UFormField
-            v-for="field in requiredFields"
-            :id="`field-${field.id}`"
-            :key="field.id"
-            :label="field.label"
-            :required="field.required"
-            :error="validationErrors[field.id]"
-          >
-            <UInput
-              :model-value="getFieldValue(field.id)"
-              :type="field.type"
-              :placeholder="field.placeholder"
-              :icon="field.icon"
-              class="w-full"
-              @update:model-value="setFieldValue(field.id, $event as string)"
-            />
-          </UFormField>
+      <div
+        class="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(26rem,1.16fr)_minmax(0,0.84fr)]"
+      >
+        <section aria-labelledby="generator-config-heading" class="space-y-6">
+          <UCard class="page-section">
+            <template #header>
+              <div class="flex items-center justify-between gap-3">
+                <h2 id="generator-config-heading" class="font-semibold text-highlighted">
+                  Configuración
+                </h2>
 
-          <!-- Enabled optional fields -->
-          <template v-for="field in enabledOptionalFieldsList" :key="field.id">
-            <!-- Special handling for name_image (object with multiple fields) -->
-            <div
-              v-if="field.id === 'name_image'"
-              :id="`field-${field.id}`"
-              class="p-4 border border-default rounded-lg space-y-3 bg-elevated/30"
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-medium text-muted">{{ field.label }}</span>
                 <UButton
-                  color="error"
+                  color="neutral"
                   variant="ghost"
-                  size="xs"
-                  icon="i-tabler-x"
-                  @click="removeOptionalField(field.id)"
+                  size="sm"
+                  icon="i-tabler-settings"
+                  class="shrink-0"
+                  aria-label="Editar perfil seleccionado"
+                  :disabled="!selectedProfile"
+                  @click="isProfileModalOpen = true"
+                >
+                  <span class="sm:hidden">Editar</span>
+                  <span class="hidden sm:inline">Editar perfil</span>
+                </UButton>
+              </div>
+            </template>
+
+            <div class="space-y-5">
+              <UFormField label="Perfil">
+                <USelectMenu
+                  v-model="selectedProfileId"
+                  :items="profileOptions"
+                  aria-label="Seleccionar perfil de firma"
+                  class="w-full"
+                  value-key="value"
+                >
+                  <template #item="{ item }">
+                    <div class="py-1">
+                      <span class="font-semibold">{{ (item as ProfileOption).id }}</span>
+                      <p class="whitespace-normal text-sm text-muted">
+                        {{ (item as ProfileOption).organization }}
+                      </p>
+                    </div>
+                  </template>
+                </USelectMenu>
+              </UFormField>
+
+              <div class="space-y-4">
+                <UFormField
+                  v-for="field in requiredFields"
+                  :id="`field-${field.id}`"
+                  :key="field.id"
+                  :label="field.label"
+                  :required="field.required"
+                  :error="validationErrors[field.id]"
+                >
+                  <UInput
+                    :model-value="getFieldValue(field.id)"
+                    :type="field.type"
+                    :placeholder="field.placeholder"
+                    :icon="field.icon"
+                    class="w-full"
+                    @update:model-value="setFieldValue(field.id, $event as string)"
+                  />
+                </UFormField>
+
+                <template v-for="field in enabledOptionalFieldsList" :key="field.id">
+                  <div
+                    v-if="field.id === 'name_image'"
+                    :id="`field-${field.id}`"
+                    class="space-y-3 rounded-xl border border-default bg-elevated/30 p-4"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-medium text-muted">{{ field.label }}</span>
+                      <UButton
+                        color="error"
+                        variant="ghost"
+                        size="xs"
+                        icon="i-tabler-x"
+                        :aria-label="`Eliminar campo opcional ${field.label}`"
+                        @click="removeOptionalField(field.id)"
+                      />
+                    </div>
+
+                    <UFormField
+                      label="URL de la imagen"
+                      :error="validationErrors['name_image.image']"
+                    >
+                      <UInput
+                        v-model="userData.name_image!.image"
+                        type="url"
+                        placeholder="https://example.com/logo.png"
+                        icon="i-tabler-photo"
+                        class="w-full"
+                      />
+                    </UFormField>
+
+                    <UFormField
+                      label="Alt (texto alternativo)"
+                      :error="validationErrors['name_image.alt']"
+                    >
+                      <UInput
+                        v-model="userData.name_image!.alt"
+                        placeholder="👤"
+                        icon="i-tabler-alt"
+                        class="w-full"
+                      />
+                    </UFormField>
+
+                    <UFormField
+                      label="Descripción"
+                      :error="validationErrors['name_image.description']"
+                    >
+                      <UInput
+                        v-model="userData.name_image!.description"
+                        placeholder="Logo de la organización"
+                        icon="i-tabler-info-circle"
+                        class="w-full"
+                      />
+                    </UFormField>
+
+                    <UFormField label="Enlace (URL)" :error="validationErrors['name_image.url']">
+                      <UInput
+                        v-model="userData.name_image!.url"
+                        type="url"
+                        placeholder="https://example.com"
+                        icon="i-tabler-link"
+                        class="w-full"
+                      />
+                    </UFormField>
+                  </div>
+
+                  <UFormField
+                    v-else
+                    :id="`field-${field.id}`"
+                    :label="field.label"
+                    :error="validationErrors[field.id]"
+                  >
+                    <UInput
+                      :model-value="getFieldValue(field.id)"
+                      :type="field.type"
+                      :placeholder="field.placeholder"
+                      :icon="field.icon"
+                      class="w-full"
+                      :ui="{ trailing: 'pe-1' }"
+                      @update:model-value="setFieldValue(field.id, $event as string)"
+                    >
+                      <template #trailing>
+                        <UButton
+                          color="error"
+                          variant="ghost"
+                          size="xs"
+                          icon="i-tabler-x"
+                          :aria-label="`Eliminar campo opcional ${field.label}`"
+                          @click="removeOptionalField(field.id)"
+                        />
+                      </template>
+                    </UInput>
+
+                    <template v-if="field.id === 'main_font' || field.id === 'name_font'" #hint>
+                      <span class="text-xs"
+                        >Solo se aplicará si el destinatario la tiene instalada.</span
+                      >
+                    </template>
+                  </UFormField>
+                </template>
+
+                <USelect
+                  v-if="availableOptionalFields.length > 0"
+                  v-model="selectedOptionalFieldToAdd"
+                  icon="i-tabler-plus"
+                  :items="availableOptionalFields"
+                  placeholder="Añadir campo opcional"
+                  class="w-full"
+                  @update:model-value="addOptionalField"
                 />
               </div>
-              <UFormField label="URL de la imagen" :error="validationErrors['name_image.image']">
-                <UInput
-                  v-model="userData.name_image!.image"
-                  type="url"
-                  placeholder="https://example.com/logo.png"
-                  icon="i-tabler-photo"
-                  class="w-full"
-                />
-              </UFormField>
-              <UFormField
-                label="Alt (texto alternativo)"
-                :error="validationErrors['name_image.alt']"
-              >
-                <UInput
-                  v-model="userData.name_image!.alt"
-                  placeholder="👤"
-                  icon="i-tabler-alt"
-                  class="w-full"
-                />
-                <template #hint>
-                  <span class="text-xs">Emoji o texto breve para accesibilidad</span>
-                </template>
-              </UFormField>
-              <UFormField label="Descripción" :error="validationErrors['name_image.description']">
-                <UInput
-                  v-model="userData.name_image!.description"
-                  placeholder="Logo de la organización"
-                  icon="i-tabler-info-circle"
-                  class="w-full"
-                />
-                <template #hint>
-                  <span class="text-xs">Se usa para aria-label</span>
-                </template>
-              </UFormField>
-              <UFormField label="Enlace (URL)" :error="validationErrors['name_image.url']">
-                <UInput
-                  v-model="userData.name_image!.url"
-                  type="url"
-                  placeholder="https://example.com"
-                  icon="i-tabler-link"
-                  class="w-full"
-                />
-                <template #hint>
-                  <span class="text-xs">URL al hacer clic en la imagen</span>
-                </template>
-              </UFormField>
+            </div>
+          </UCard>
+        </section>
+
+        <section aria-labelledby="preview-heading" class="space-y-4 xl:sticky xl:top-6">
+          <UCard class="page-section-strong overflow-hidden">
+            <template #header>
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <h2 id="preview-heading" class="font-semibold text-highlighted">Vista previa</h2>
+                  <div
+                    class="flex items-center justify-between gap-4 rounded-full border border-default bg-elevated/35 px-4 py-2 lg:min-w-60"
+                  >
+                    <span class="text-sm text-toned">Cargar imágenes</span>
+                    <USwitch
+                      v-model="previewShowsImages"
+                      aria-label="Mostrar imágenes cargadas en la vista previa"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div
+              ref="previewCaptureContainer"
+              aria-describedby="preview-description"
+              aria-labelledby="preview-heading"
+              role="region"
+              tabindex="0"
+              class="preview-shell min-h-64 max-h-112 overflow-auto rounded-[1.75rem] p-5 text-black sm:min-h-68 sm:p-6 xl:max-h-128"
+            >
+              <SignaturePreview
+                v-if="selectedProfile"
+                :user="userData"
+                :profile="selectedProfile"
+                :enabled-optional-fields="enabledOptionalFields"
+                :preview-mode="selectedPreviewMode"
+              />
+              <p v-else class="text-sm text-neutral-600">
+                No hay ningún perfil disponible para generar la firma.
+              </p>
             </div>
 
-            <!-- Regular optional fields -->
-            <UFormField
-              v-else
-              :id="`field-${field.id}`"
-              :label="field.label"
-              :error="validationErrors[field.id]"
-            >
-              <UInput
-                :model-value="getFieldValue(field.id)"
-                :type="field.type"
-                :placeholder="field.placeholder"
-                :icon="field.icon"
-                class="w-full"
-                :ui="{ trailing: 'pe-1' }"
-                @update:model-value="setFieldValue(field.id, $event as string)"
-              >
-                <template #trailing>
-                  <UButton
-                    color="error"
-                    variant="ghost"
-                    size="xs"
-                    icon="i-tabler-x"
-                    @click="removeOptionalField(field.id)"
-                  />
-                </template>
-              </UInput>
-              <template v-if="field.id === 'main_font' || field.id === 'name_font'" #hint>
-                <span class="text-xs">Solo se aplicará si el destinatario la tiene</span>
-              </template>
-            </UFormField>
-          </template>
+            <template #footer>
+              <div class="flex flex-col gap-3">
+                <p class="text-sm text-muted">
+                  Copia el HTML si lo vas a pegar en el editor del cliente de correo. Descarga el
+                  archivo si tu cliente acepta firmas HTML desde fichero.
+                </p>
 
-          <!-- Add optional field selector -->
-          <USelect
-            v-if="availableOptionalFields.length > 0"
-            v-model="selectedOptionalFieldToAdd"
-            icon="i-tabler-plus"
-            :items="availableOptionalFields"
-            placeholder="Añadir campo opcional"
-            class="w-full"
-            @update:model-value="addOptionalField"
-          />
-        </div>
-      </UCard>
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                  <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                    <UButton
+                      color="primary"
+                      icon="i-tabler-copy"
+                      class="w-full justify-center sm:min-w-44 sm:w-auto"
+                      :disabled="!selectedProfile"
+                      @click="handleCopyHtml"
+                    >
+                      Copiar HTML
+                    </UButton>
+                    <UButton
+                      color="neutral"
+                      variant="outline"
+                      icon="i-tabler-download"
+                      class="w-full justify-center sm:min-w-48 sm:w-auto"
+                      :disabled="!selectedProfile"
+                      @click="handleDownload"
+                    >
+                      Descargar HTML
+                    </UButton>
+                  </div>
 
-      <!-- Preview Section -->
-      <UCard>
-        <template #header>
-          <div>
-            <h3 class="font-semibold">Vista previa</h3>
-          </div>
-        </template>
+                  <div class="sm:ml-auto">
+                    <UDropdownMenu :items="previewDownloadItems">
+                      <div class="flex w-full sm:w-auto sm:justify-end">
+                        <UButton
+                          color="neutral"
+                          variant="soft"
+                          size="sm"
+                          trailing-icon="i-tabler-chevron-down"
+                          class="w-full justify-center sm:hidden"
+                          :disabled="!selectedProfile"
+                        >
+                          Más opciones
+                        </UButton>
 
-        <!-- Signature Preview -->
-        <div
-          class="bg-white text-black rounded-lg p-6 min-h-48 overflow-auto"
-          style="color-scheme: light"
-        >
-          <SignaturePreview
-            v-if="selectedProfile"
-            :user="userData"
-            :profile="selectedProfile"
-            :enabled-optional-fields="enabledOptionalFields"
-          />
-        </div>
-
-        <!-- Action Buttons -->
-        <template #footer>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <UButton
-              color="neutral"
-              variant="soft"
-              icon="i-tabler-copy"
-              class="flex-1 justify-center"
-              @click="handleCopyHtml"
-            >
-              Copiar HTML
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="soft"
-              icon="i-tabler-download"
-              class="flex-1 justify-center"
-              @click="handleDownload"
-            >
-              Descargar
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </div>
-  </UContainer>
+                        <UTooltip text="Más opciones">
+                          <UButton
+                            color="neutral"
+                            variant="ghost"
+                            size="sm"
+                            icon="i-tabler-dots"
+                            class="hidden size-10 justify-center rounded-full sm:inline-flex"
+                            aria-label="Más opciones"
+                            :disabled="!selectedProfile"
+                          />
+                        </UTooltip>
+                      </div>
+                    </UDropdownMenu>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </UCard>
+        </section>
+      </div>
+    </UPageBody>
+  </UPage>
 </template>

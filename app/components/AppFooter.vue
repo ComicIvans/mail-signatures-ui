@@ -1,60 +1,72 @@
+<script setup lang="ts">
+import { authorSocialProfiles, siteRepositoryUrl, siteShortName } from '~~/shared/constants/site'
+
+const footerLinks = [
+  {
+    label: 'Repositorio',
+    to: siteRepositoryUrl,
+    icon: 'i-lucide-folder-git-2'
+  },
+  {
+    label: 'LinkedIn',
+    to: authorSocialProfiles.linkedin,
+    icon: 'i-lucide-linkedin'
+  },
+  {
+    label: 'Instagram',
+    to: authorSocialProfiles.instagram,
+    icon: 'i-lucide-instagram'
+  },
+  {
+    label: 'GitHub',
+    to: authorSocialProfiles.github,
+    icon: 'i-lucide-github'
+  }
+]
+</script>
+
 <template>
-  <UFooter role="contentinfo">
-    <template #left>
-      <div class="text-center sm:text-left">
-        <p class="text-muted text-sm">
-          <span aria-label="Copyright">©</span> {{ new Date().getFullYear() }} Generador de firmas
+  <footer class="border-default border-t bg-default/72 backdrop-blur-sm" role="contentinfo">
+    <div
+      class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 text-center sm:px-6 md:flex-row md:items-center md:justify-between md:text-left"
+    >
+      <div class="space-y-1 text-sm text-muted">
+        <p>
+          <span aria-label="Copyright">©</span> {{ new Date().getFullYear() }} {{ siteShortName }}.
         </p>
-        <p class="text-muted text-sm">
-          Desarrollado por Iván Salido Cobo · Distribuido bajo licencia
+        <p>
+          Desarrollado por Iván Salido Cobo · Código disponible en
           <ULink
-            to="https://www.gnu.org/licenses/gpl-3.0.html"
+            :to="siteRepositoryUrl"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Licencia GPL-3.0 (se abre en nueva pestaña)"
+            class="inline-link"
           >
-            GPL-3.0 <span class="sr-only">(se abre en nueva pestaña)</span> </ULink
-          >.
+            GitHub
+          </ULink>
+          bajo licencia GPL-3.0.
         </p>
       </div>
-    </template>
 
-    <template #right>
-      <nav class="flex items-center gap-2" aria-label="Enlaces a redes sociales del autor">
-        <UTooltip text="LinkedIn">
-          <UButton
-            to="https://www.linkedin.com/in/ivansalidocobo"
-            target="_blank"
-            rel="noopener noreferrer"
-            icon="i-lucide-linkedin"
-            variant="ghost"
-            color="neutral"
-            aria-label="LinkedIn"
-          />
-        </UTooltip>
-        <UTooltip text="Instagram">
-          <UButton
-            to="https://instagram.com/ivansalidocobo"
-            target="_blank"
-            rel="noopener noreferrer"
-            icon="i-lucide-instagram"
-            variant="ghost"
-            color="neutral"
-            aria-label="Instagram"
-          />
-        </UTooltip>
-        <UTooltip text="GitHub">
-          <UButton
-            to="https://github.com/ComicIvans"
-            target="_blank"
-            rel="noopener noreferrer"
-            icon="i-lucide-github"
-            variant="ghost"
-            color="neutral"
-            aria-label="GitHub"
-          />
-        </UTooltip>
+      <nav
+        class="flex flex-wrap items-center justify-center gap-2 md:justify-end"
+        aria-label="Enlaces útiles del proyecto y del autor"
+      >
+        <UButton
+          v-for="link in footerLinks"
+          :key="link.label"
+          :to="link.to"
+          target="_blank"
+          rel="noopener noreferrer"
+          :icon="link.icon"
+          variant="ghost"
+          color="neutral"
+          class="social-icon"
+          :aria-label="link.label"
+        >
+          <span class="hidden sm:inline">{{ link.label }}</span>
+        </UButton>
       </nav>
-    </template>
-  </UFooter>
+    </div>
+  </footer>
 </template>
