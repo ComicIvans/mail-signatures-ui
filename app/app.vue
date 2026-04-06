@@ -38,8 +38,6 @@ useSeoMeta({
 defineOgImage('NuxtSeoSatori', {
   title: siteName,
   description: siteDescription,
-  siteLogo: '/favicon.svg',
-  theme: siteThemeColor,
   colorMode: 'light'
 })
 
